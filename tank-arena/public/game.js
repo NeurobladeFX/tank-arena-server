@@ -17,6 +17,13 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const finalKillsDisplay = document.getElementById('finalKills');
 const survivalTimeDisplay = document.getElementById('survivalTime');
 
+window.vehicleTypes = {
+    tank: { health: 150, speed: 2, damage: 35, size: 45, color: '#4CAF50' },
+    jeep: { health: 100, speed: 4, damage: 20, size: 35, color: '#FF9800' },
+    apc: { health: 200, speed: 1.5, damage: 25, size: 50, color: '#795548' },
+    artillery: { health: 120, speed: 1, damage: 50, size: 40, color: '#607D8B' }
+};
+
 // Mobile controls
 const mobileControls = document.getElementById('mobileControls');
 const movementJoystick = document.getElementById('movementJoystick');
@@ -132,19 +139,33 @@ function handleJoystickEnd(e) {
 
 function handleMovementJoystick(e) {
     e.preventDefault();
-    const touch = e.touches[0];
+    const touchEvent = e.touches[0];
     const rect = movementJoystick.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
-    const deltaX = touch.clientX - centerX;
-    const deltaY = touch.clientY - centerY;
+    const deltaX = touchEvent.clientX - centerX;
+    const deltaY = touchEvent.clientY - centerY;
     const distance = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), rect.width / 2);
     const angle = Math.atan2(deltaY, deltaX);
     
     touch.movement.active = true;
     touch.movement.x = Math.cos(angle) * (distance / (rect.width / 2));
     touch.movement.y = Math.sin(angle) * (distance / (rect.height / 2));
+}
+
+function handleShootingJoystick(e) {
+    e.preventDefault();
+    const touchEvent = e.touches[0];
+    const rect = shootingJoystick.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const deltaX = touchEvent.clientX - centerX;
+    const deltaY = touchEvent.clientY - centerY;
+    
+    touch.shooting.active = true;
+    touch.shooting.angle = Math.atan2(deltaY, deltaX);
 }
 
 function handleShootingJoystick(e) {
@@ -176,7 +197,17 @@ class Vehicle {
         this.x = x;
         this.y = y;
         this.vehicleType = vehicleType;
-        const stats = window.vehicleTypes[vehicleType];
+        
+        // Use default stats if vehicleTypes hasn't been received yet
+        const defaultStats = {
+            tank: { health: 150, speed: 2, damage: 35, size: 45, color: '#4CAF50' },
+            jeep: { health: 100, speed: 4, damage: 20, size: 35, color: '#FF9800' },
+            apc: { health: 200, speed: 1.5, damage: 25, size: 50, color: '#795548' },
+            artillery: { health: 120, speed: 1, damage: 50, size: 40, color: '#607D8B' }
+        };
+        
+        const stats = (window.vehicleTypes && window.vehicleTypes[vehicleType]) || defaultStats[vehicleType] || defaultStats.tank;
+        
         this.width = stats.size;
         this.height = stats.size;
         this.angle = 0;
@@ -195,7 +226,6 @@ class Vehicle {
         this.experience = 0;
         this.level = 1;
     }
-
     update() {
         if (this.isPlayer) {
             let moved = false;
@@ -564,8 +594,10 @@ socket.on('connect', () => {
 });
 
 socket.on('game-config', (config) => {
-    window.vehicleTypes = config.vehicleTypes;
+    window.vehicleTypes = { ...window.vehicleTypes, ...config.vehicleTypes };
     mapSize = config.mapSize;
+
+    document.getElementById('startButton').disabled = false;
 });
 
 socket.on('game-state', (gameState) => {
