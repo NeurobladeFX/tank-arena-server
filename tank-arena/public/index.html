@@ -2,32 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tactical Tank Arena Multiplayer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Military Vehicles IO - Tank Battle Royale</title>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="gameUI">
-        <div>Health: <span id="health">100</span></div>
-        <div>Kills: <span id="kills">0</span></div>
-        <div>Score: <span id="score">0</span></div>
-        <div>Room: <span id="room">1</span></div>
-    </div>
-    
-    <div id="leaderboard">
-        <h3>Leaderboard</h3>
-        <div id="leaderboard-entries"></div>
-    </div>
-
-    <div id="startScreen">
-        <h1>Tactical Tank Arena</h1>
-        <p>Use WASD to move, mouse to aim, click to shoot</p>
-        <div id="nameInput">
-            <input type="text" id="playerNameInput" placeholder="Enter your name">
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="gameUI">
+            <div id="playerStats">
+                <div>Health: <span id="health">100</span></div>
+                <div>Score: <span id="score">0</span></div>
+                <div>Kills: <span id="kills">0</span></div>
+                <div>Level: <span id="level">1</span></div>
+            </div>
+            <div id="minimapContainer">
+                <canvas id="minimap"></canvas>
+            </div>
         </div>
-        <button id="startButton">Start Game</button>
+        
+        <div id="leaderboard">
+            <h3>🏆 LEADERBOARD</h3>
+            <div id="leaderboard-entries"></div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobileControls">
+            <div id="movementJoystick" class="joystick"></div>
+            <div id="shootingJoystick" class="joystick"></div>
+            <button id="shootButton">FIRE</button>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <div id="startContent">
+                <h1>🚀 MILITARY VEHICLES IO</h1>
+                <p>Battle with tanks, jeeps, and armored vehicles in massive multiplayer combat!</p>
+                
+                <div id="vehicleSelection">
+                    <h3>CHOOSE YOUR VEHICLE:</h3>
+                    <div class="vehicle-options">
+                        <div class="vehicle-option" data-vehicle="tank">
+                            <div class="vehicle-icon">🚜</div>
+                            <div class="vehicle-name">Battle Tank</div>
+                            <div class="vehicle-stats">Health: 150 | Damage: 35 | Speed: 2</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="jeep">
+                            <div class="vehicle-icon">🚙</div>
+                            <div class="vehicle-name">Combat Jeep</div>
+                            <div class="vehicle-stats">Health: 100 | Damage: 20 | Speed: 4</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="apc">
+                            <div class="vehicle-icon">🚐</div>
+                            <div class="vehicle-name">Armored APC</div>
+                            <div class="vehicle-stats">Health: 200 | Damage: 25 | Speed: 1.5</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="artillery">
+                            <div class="vehicle-icon">🚛</div>
+                            <div class="vehicle-name">Artillery</div>
+                            <div class="vehicle-stats">Health: 120 | Damage: 50 | Speed: 1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="nameInput">
+                    <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="15">
+                </div>
+                
+                <button id="startButton">DEPLOY TO BATTLEFIELD</button>
+                
+                <div id="controlsInfo">
+                    <h4>CONTROLS:</h4>
+                    <p><strong>Desktop:</strong> WASD to move, Mouse to aim, Click to shoot</p>
+                    <p><strong>Mobile:</strong> Use joysticks to move and aim, FIRE button to shoot</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden">
+            <div id="gameOverContent">
+                <h2>MISSION COMPLETE</h2>
+                <div id="finalStats">
+                    <div>Final Score: <span id="finalScore">0</span></div>
+                    <div>Total Kills: <span id="finalKills">0</span></div>
+                    <div>Survival Time: <span id="survivalTime">0</span></div>
+                </div>
+                <button id="playAgainButton">FIGHT AGAIN</button>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>
