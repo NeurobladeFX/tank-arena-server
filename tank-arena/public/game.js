@@ -4,6 +4,11 @@ const minimap = document.getElementById('minimap');
 const minimapCtx = minimap.getContext('2d');
 
 // UI Elements
+// Disable start button until game config is received
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('startButton').disabled = true;
+});
+
 const startScreen = document.getElementById('startScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const startButton = document.getElementById('startButton');
@@ -989,3 +994,4 @@ window.addEventListener('beforeunload', () => {
 
 // Auto-select first vehicle
 vehicleOptions[0].classList.add('selected');
+
