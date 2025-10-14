@@ -397,3 +397,14 @@ button:hover {
         font-size: 12px;
     }
 }
+
+button:disabled {
+    background: #666 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+button:disabled:hover {
+    transform: none !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
