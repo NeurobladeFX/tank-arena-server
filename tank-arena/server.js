@@ -116,6 +116,11 @@ function updateLeaderboard() {
 
 io.on('connection', (socket) => {
   console.log('Player connected:', socket.id);
+
+  socket.emit('game-config', {
+    mapSize: MAP_SIZE,
+    vehicleTypes: VEHICLE_TYPES
+  });
   
   socket.emit('room-assigned', 'main_arena');
   socket.emit('game-state', gameState);
@@ -155,10 +160,21 @@ io.on('connection', (socket) => {
   });
   
   socket.on('score-update', (scoreData) => {
-    if (gameState.tanks[scoreData.id]) {
-      gameState.tanks[scoreData.id].score = scoreData.score;
-    }
-  });
+  if (gameState.players[scoreData.id]) {
+    gameState.players[scoreData.id].score = scoreData.score;
+    gameState.players[scoreData.id].kills = scoreData.kills;
+    gameState.players[scoreData.id].experience = scoreData.experience;
+    gameState.players[scoreData.id].level = scoreData.level;
+  }
+});
+
+// Handle resource collection
+socket.on('collect-resource', (data) => {
+  // Remove the collected resource
+  gameState.resources = gameState.resources.filter(resource => 
+    !(resource.x === data.resource.x && resource.y === data.resource.y)
+  );
+});
   
   socket.on('player-respawn', (playerData) => {
     if (gameState.tanks[playerData.id]) {
@@ -191,6 +207,7 @@ io.on('connection', (socket) => {
   socket.on('leave-game', (playerId) => {
     delete gameState.tanks[playerId];
     console.log(`Player ${playerId} left the game`);
+    io.emit('game-state', gameState);
   });
 });
 
