@@ -3,12 +3,12 @@ const ctx = canvas.getContext('2d');
 const minimap = document.getElementById('minimap');
 const minimapCtx = minimap.getContext('2d');
 
-// UI Elements
 // Disable start button until game config is received
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startButton').disabled = true;
 });
 
+// UI Elements
 const startScreen = document.getElementById('startScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const startButton = document.getElementById('startButton');
@@ -51,6 +51,16 @@ window.addEventListener('resize', setCanvasSizes);
 
 // Socket.io connection
 const socket = io();
+
+socket.on('connect_error', (error) => {
+    console.error('Connection failed:', error);
+    alert('Failed to connect to game server. Please refresh and try again.');
+});
+
+socket.on('connect_timeout', () => {
+    console.error('Connection timeout');
+    alert('Connection to game server timed out. Please refresh and try again.');
+});
 
 // Game variables
 let gameRunning = false;
@@ -994,4 +1004,3 @@ window.addEventListener('beforeunload', () => {
 
 // Auto-select first vehicle
 vehicleOptions[0].classList.add('selected');
-
