@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Tank Arena Multiplayer</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameUI">
+        <div>Health: <span id="health">100</span></div>
+        <div>Kills: <span id="kills">0</span></div>
+        <div>Score: <span id="score">0</span></div>
+        <div>Room: <span id="room">1</span></div>
+    </div>
+    
+    <div id="leaderboard">
+        <h3>Leaderboard</h3>
+        <div id="leaderboard-entries"></div>
+    </div>
+
+    <div id="startScreen">
+        <h1>Tactical Tank Arena</h1>
+        <p>Use WASD to move, mouse to aim, click to shoot</p>
+        <div id="nameInput">
+            <input type="text" id="playerNameInput" placeholder="Enter your name">
+        </div>
+        <button id="startButton">Start Game</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
