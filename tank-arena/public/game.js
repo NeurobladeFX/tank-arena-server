@@ -5,7 +5,10 @@ const minimapCtx = minimap.getContext('2d');
 
 // Disable start button until game config is received
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('startButton').disabled = true;
+    const startButton = document.getElementById('startButton');
+    if (startButton) {
+        startButton.disabled = true;
+    }
 });
 
 // UI Elements
