@@ -235,6 +235,13 @@ class Vehicle {
         this.specialAbilityCooldown = 0;
         this.specialAbilityActive = false;
         this.specialAbilityDuration = 0;
+        
+        // Load vehicle images
+        this.bodyImage = new Image();
+        this.turretImage = new Image();
+        this.bodyImageLoaded = false;
+        this.turretImageLoaded = false;
+        this.loadVehicleImages();
     }
     
     getDefaultColor() {
@@ -247,6 +254,46 @@ class Vehicle {
             mech: '#F44336'
         };
         return colors[this.vehicleType] || '#4CAF50';
+    }
+    
+    loadVehicleImages() {
+        const imagePath = this.getImagePath();
+        
+        // Try to load images, if they fail, use fallback colors
+        this.bodyImage.onload = () => {
+            this.bodyImageLoaded = true;
+        };
+        this.bodyImage.onerror = () => {
+            this.bodyImageLoaded = false;
+            console.log(`Body image not found for ${this.vehicleType}, using colored shapes`);
+        };
+        
+        this.turretImage.onload = () => {
+            this.turretImageLoaded = true;
+        };
+        this.turretImage.onerror = () => {
+            this.turretImageLoaded = false;
+            console.log(`Turret image not found for ${this.vehicleType}, using colored shapes`);
+        };
+        
+        // Set image sources
+        this.bodyImage.src = `assets/${imagePath}_body.png`;
+        this.turretImage.src = `assets/${imagePath}_turret.png`;
+    }
+    
+    getImagePath() {
+        const baseTypes = {
+            tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
+            jeep: ['jeep_basic', 'jeep_combat', 'jeep_assault', 'jeep_raider', 'jeep_commando'],
+            apc: ['apc_basic', 'apc_heavy', 'apc_battle', 'apc_assault', 'apc_titan'],
+            artillery: ['artillery_basic', 'artillery_heavy', 'artillery_siege', 'artillery_mobile', 'artillery_super'],
+            helicopter: ['helicopter_basic', 'helicopter_attack', 'helicopter_gunship', 'helicopter_heavy', 'helicopter_elite'],
+            mech: ['mech_basic', 'mech_assault', 'mech_heavy', 'mech_battle', 'mech_titan']
+        };
+        
+        const typeArray = baseTypes[this.vehicleType] || baseTypes.tank;
+        const levelIndex = Math.min(this.level - 1, typeArray.length - 1);
+        return typeArray[levelIndex];
     }
     
     updateStats() {
@@ -282,6 +329,7 @@ class Vehicle {
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
+            this.loadVehicleImages(); // Reload images for new level
             
             // Level up effect
             if (this.isPlayer) {
@@ -500,13 +548,26 @@ class Vehicle {
         // Draw vehicle body
         ctx.save();
         ctx.rotate(this.angle);
-        this.drawVehicleBody();
+        if (this.bodyImageLoaded) {
+            ctx.drawImage(this.bodyImage, -this.width/2, -this.height/2, this.width, this.height);
+        } else {
+            // Fallback to colored rectangle
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+        }
         ctx.restore();
         
         // Draw turret
         ctx.save();
         ctx.rotate(this.turretAngle);
-        this.drawVehicleTurret();
+        if (this.turretImageLoaded) {
+            const turretSize = this.width * 0.7;
+            ctx.drawImage(this.turretImage, -turretSize/2, -turretSize/2, turretSize, turretSize);
+        } else {
+            // Fallback to simple turret
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, -3, this.width/2 + 10, 6);
+        }
         ctx.restore();
         
         ctx.restore();
@@ -521,89 +582,6 @@ class Vehicle {
         
         if (this.stealth) {
             ctx.restore();
-        }
-    }
-    
-    drawVehicleBody() {
-        ctx.fillStyle = this.color;
-        
-        switch(this.vehicleType) {
-            case 'tank':
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(-this.width/4, -this.height/2, this.width/2, this.height/3);
-                break;
-            case 'jeep':
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, 10);
-                break;
-            case 'apc':
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-                ctx.fillStyle = '#555';
-                ctx.fillRect(-this.width/2 + 5, -this.height/2 + 5, this.width - 10, 8);
-                break;
-            case 'artillery':
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-                ctx.fillStyle = '#555';
-                ctx.fillRect(-15, 5, 30, 10);
-                break;
-            case 'helicopter':
-                // Helicopter body (oval)
-                ctx.beginPath();
-                ctx.ellipse(0, 0, this.width/2, this.height/3, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // Rotor
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(-this.width/2, -this.height/2);
-                ctx.lineTo(this.width/2, -this.height/2);
-                ctx.stroke();
-                break;
-            case 'mech':
-                // Mech body
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-                // Mech legs
-                ctx.fillStyle = '#333';
-                ctx.fillRect(-this.width/4, this.height/2 - 5, this.width/8, 10);
-                ctx.fillRect(this.width/8, this.height/2 - 5, this.width/8, 10);
-                break;
-        }
-    }
-    
-    drawVehicleTurret() {
-        ctx.fillStyle = '#333';
-        
-        switch(this.vehicleType) {
-            case 'tank':
-                ctx.fillRect(-8, -20, 16, 40);
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -5, 30, 10);
-                break;
-            case 'jeep':
-                ctx.fillRect(-5, -15, 10, 30);
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -3, 25, 6);
-                break;
-            case 'apc':
-                ctx.fillRect(-10, -15, 20, 30);
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -3, 20, 6);
-                break;
-            case 'artillery':
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -3, 40, 6);
-                break;
-            case 'helicopter':
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -2, 25, 4);
-                break;
-            case 'mech':
-                ctx.fillRect(-6, -25, 12, 50);
-                ctx.fillStyle = '#666';
-                ctx.fillRect(0, -4, 35, 8);
-                break;
         }
     }
     
@@ -840,7 +818,7 @@ class Resource {
     }
 }
 
-// Explosion class
+// FIXED Explosion class - No more negative radius error
 class Explosion {
     constructor(x, y, size, color = null) {
         this.x = x;
@@ -875,8 +853,13 @@ class Explosion {
             }
         } else {
             this.currentSize -= 2;
+            // FIX: Prevent negative size
+            if (this.currentSize < 0) {
+                this.currentSize = 0;
+            }
         }
 
+        // Update particles
         this.particles.forEach(particle => {
             particle.x += Math.cos(particle.angle) * particle.speed;
             particle.y += Math.sin(particle.angle) * particle.speed;
@@ -891,19 +874,22 @@ class Explosion {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Main explosion with gradient
-        const gradient = ctx.createRadialGradient(
-            screenX, screenY, 0,
-            screenX, screenY, this.currentSize
-        );
-        gradient.addColorStop(0, `rgba(255, 150, 0, 0.9)`);
-        gradient.addColorStop(0.7, `rgba(255, 50, 0, 0.5)`);
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(screenX, screenY, this.currentSize, 0, Math.PI * 2);
-        ctx.fill();
+        // FIX: Only draw if currentSize is positive
+        if (this.currentSize > 0) {
+            // Main explosion with gradient
+            const gradient = ctx.createRadialGradient(
+                screenX, screenY, 0,
+                screenX, screenY, this.currentSize
+            );
+            gradient.addColorStop(0, `rgba(255, 150, 0, 0.9)`);
+            gradient.addColorStop(0.7, `rgba(255, 50, 0, 0.5)`);
+            gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, this.currentSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // Particles
         this.particles.forEach(particle => {
@@ -921,7 +907,7 @@ class Explosion {
     }
 
     isDone() {
-        return !this.growing && this.currentSize <= 0 && this.particles.length === 0;
+        return this.currentSize <= 0 && this.particles.length === 0;
     }
 }
 
