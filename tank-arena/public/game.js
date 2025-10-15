@@ -60,10 +60,68 @@ let explosions = [];
 let leaderboard = [];
 let gameTime = 600;
 let camera = { x: 0, y: 0 };
-let mapSize = 3000;
-let vehicleSystem = {};
+let mapSize = 4000;
+let startTime = Date.now();
 
-// Input handling - Simplified for mobile
+// Enhanced Vehicle System with 5 levels and more vehicles
+const vehicleSystem = {
+    tank: {
+        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 50, fireRate: 1.0 },
+        upgrades: {
+            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 55, fireRate: 1.1 },
+            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 60, fireRate: 1.2 },
+            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 65, fireRate: 1.3 },
+            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 70, fireRate: 1.5 }
+        }
+    },
+    jeep: {
+        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 40, fireRate: 1.2 },
+        upgrades: {
+            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 42, fireRate: 1.3 },
+            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 45, fireRate: 1.4 },
+            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 48, fireRate: 1.5 },
+            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 50, fireRate: 1.7 }
+        }
+    },
+    apc: {
+        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 60, fireRate: 0.8 },
+        upgrades: {
+            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 65, fireRate: 0.9 },
+            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 70, fireRate: 1.0 },
+            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 75, fireRate: 1.1 },
+            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 80, fireRate: 1.2 }
+        }
+    },
+    artillery: {
+        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 55, fireRate: 0.5 },
+        upgrades: {
+            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 60, fireRate: 0.6 },
+            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 65, fireRate: 0.7 },
+            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 70, fireRate: 0.8 },
+            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 75, fireRate: 0.9 }
+        }
+    },
+    helicopter: {
+        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 45, fireRate: 2.0 },
+        upgrades: {
+            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 48, fireRate: 2.2 },
+            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 52, fireRate: 2.4 },
+            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 55, fireRate: 2.6 },
+            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 58, fireRate: 2.8 }
+        }
+    },
+    mech: {
+        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 52, fireRate: 0.9 },
+        upgrades: {
+            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 56, fireRate: 1.0 },
+            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 60, fireRate: 1.1 },
+            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 64, fireRate: 1.2 },
+            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 68, fireRate: 1.3 }
+        }
+    }
+};
+
+// Input handling
 const keys = {};
 const mouse = { x: 0, y: 0, clicked: false };
 const touch = {
@@ -92,23 +150,17 @@ canvas.addEventListener('mousemove', (e) => {
     mouse.y = e.clientY - rect.top + camera.y;
 });
 
-canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) {
-        mouse.clicked = true;
-    }
-});
-
-// Simplified touch events for mobile :cite[6]
+// Mobile controls
 if (isMobile) {
     mobileControls.style.display = 'block';
     
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const touch = e.touches[0];
+        const touchEvent = e.touches[0];
         const rect = canvas.getBoundingClientRect();
         touch.active = true;
-        touch.startX = touch.clientX - rect.left;
-        touch.startY = touch.clientY - rect.top;
+        touch.startX = touchEvent.clientX - rect.left;
+        touch.startY = touchEvent.clientY - rect.top;
         touch.x = touch.startX;
         touch.y = touch.startY;
     });
@@ -138,7 +190,6 @@ if (isMobile) {
         mouse.clicked = false;
     });
 } else {
-    // Desktop mouse controls
     canvas.addEventListener('mousedown', (e) => {
         if (e.button === 0) {
             mouse.clicked = true;
@@ -161,7 +212,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with image support
+// Vehicle class with separate body and turret
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -172,23 +223,74 @@ class Vehicle {
         this.updateStats();
         
         this.angle = 0;
+        this.turretAngle = 0;
         this.isPlayer = isPlayer;
-        this.color = color || '#4CAF50';
+        this.color = color || this.getDefaultColor();
         this.cooldown = 0;
-        this.maxCooldown = vehicleType === 'artillery' ? 60 : 30;
         this.id = id;
         this.name = name;
         this.kills = 0;
         this.score = 0;
         this.experience = 0;
+        this.specialAbilityCooldown = 0;
+        this.specialAbilityActive = false;
+        this.specialAbilityDuration = 0;
         
-        // Load vehicle image
-        this.image = new Image();
-        this.image.src = `assets/${vehicleType}.png`;
-        this.imageLoaded = false;
-        this.image.onload = () => {
-            this.imageLoaded = true;
+        // Load vehicle images
+        this.bodyImage = new Image();
+        this.turretImage = new Image();
+        this.bodyImageLoaded = false;
+        this.turretImageLoaded = false;
+        this.loadVehicleImages();
+    }
+    
+    getDefaultColor() {
+        const colors = {
+            tank: '#4CAF50',
+            jeep: '#2196F3', 
+            apc: '#FF9800',
+            artillery: '#9C27B0',
+            helicopter: '#00BCD4',
+            mech: '#F44336'
         };
+        return colors[this.vehicleType] || '#4CAF50';
+    }
+    
+    loadVehicleImages() {
+        const imagePath = this.getImagePath();
+        this.bodyImage.src = `assets/${imagePath}_body.png`;
+        this.turretImage.src = `assets/${imagePath}_turret.png`;
+        
+        this.bodyImage.onload = () => {
+            this.bodyImageLoaded = true;
+        };
+        this.turretImage.onload = () => {
+            this.turretImageLoaded = true;
+        };
+        
+        this.bodyImage.onerror = () => {
+            this.bodyImageLoaded = false;
+            console.warn(`Failed to load body image: assets/${imagePath}_body.png`);
+        };
+        this.turretImage.onerror = () => {
+            this.turretImageLoaded = false;
+            console.warn(`Failed to load turret image: assets/${imagePath}_turret.png`);
+        };
+    }
+    
+    getImagePath() {
+        const baseTypes = {
+            tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
+            jeep: ['jeep_basic', 'jeep_combat', 'jeep_assault', 'jeep_raider', 'jeep_commando'],
+            apc: ['apc_basic', 'apc_heavy', 'apc_battle', 'apc_assault', 'apc_titan'],
+            artillery: ['artillery_basic', 'artillery_heavy', 'artillery_siege', 'artillery_mobile', 'artillery_super'],
+            helicopter: ['helicopter_basic', 'helicopter_attack', 'helicopter_gunship', 'helicopter_heavy', 'helicopter_elite'],
+            mech: ['mech_basic', 'mech_assault', 'mech_heavy', 'mech_battle', 'mech_titan']
+        };
+        
+        const typeArray = baseTypes[this.vehicleType] || baseTypes.tank;
+        const levelIndex = Math.min(this.level - 1, typeArray.length - 1);
+        return typeArray[levelIndex];
     }
     
     updateStats() {
@@ -201,7 +303,7 @@ class Vehicle {
             this.displayName = stats.name;
         } else {
             stats = vehicleData.base;
-            this.displayName = this.getBaseVehicleName();
+            this.displayName = stats.name;
         }
         
         this.width = stats.size;
@@ -209,32 +311,107 @@ class Vehicle {
         this.speed = stats.speed;
         this.maxHealth = stats.health;
         this.damage = stats.damage;
+        this.fireRate = stats.fireRate;
+        this.maxCooldown = 60 / this.fireRate; // Cooldown in frames
         
         if (!this.health) {
             this.health = this.maxHealth;
         }
     }
     
-    getBaseVehicleName() {
-        const names = {
-            tank: 'Main Battle Tank',
-            jeep: 'Combat Jeep', 
-            apc: 'Armored APC',
-            artillery: 'Field Artillery'
-        };
-        return names[this.vehicleType] || this.vehicleType;
-    }
-    
     levelUp() {
-        if (this.level < 3) {
+        if (this.level < 5) {
             this.level++;
             const oldHealth = this.health;
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
+            this.loadVehicleImages();
+            
+            // Level up effect
+            if (this.isPlayer) {
+                for (let i = 0; i < 15; i++) {
+                    explosions.push(new Explosion(
+                        this.x + Math.random() * 80 - 40, 
+                        this.y + Math.random() * 80 - 40, 
+                        20,
+                        '#4CAF50'
+                    ));
+                }
+            }
             return true;
         }
         return false;
+    }
+    
+    activateSpecialAbility() {
+        if (this.specialAbilityCooldown <= 0) {
+            this.specialAbilityActive = true;
+            this.specialAbilityDuration = 180; // 3 seconds at 60fps
+            this.specialAbilityCooldown = 600; // 10 second cooldown
+            
+            // Ability effects based on vehicle type
+            switch(this.vehicleType) {
+                case 'tank':
+                    // Temporary damage boost
+                    this.damage *= 1.5;
+                    break;
+                case 'jeep':
+                    // Speed boost
+                    this.speed *= 1.5;
+                    break;
+                case 'apc':
+                    // Temporary shield
+                    this.tempShield = this.maxHealth * 0.5;
+                    break;
+                case 'artillery':
+                    // Rapid fire
+                    this.fireRate *= 2;
+                    this.maxCooldown = 60 / this.fireRate;
+                    break;
+                case 'helicopter':
+                    // Invisibility for short time
+                    this.stealth = true;
+                    break;
+                case 'mech':
+                    // Area damage
+                    this.areaDamage = true;
+                    break;
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    deactivateSpecialAbility() {
+        this.specialAbilityActive = false;
+        
+        // Reset temporary bonuses
+        switch(this.vehicleType) {
+            case 'tank':
+                this.damage = vehicleSystem[this.vehicleType].upgrades[this.level]?.damage || 
+                             vehicleSystem[this.vehicleType].base.damage;
+                break;
+            case 'jeep':
+                this.speed = vehicleSystem[this.vehicleType].upgrades[this.level]?.speed || 
+                            vehicleSystem[this.vehicleType].base.speed;
+                break;
+            case 'apc':
+                this.tempShield = 0;
+                break;
+            case 'artillery':
+                this.fireRate = vehicleSystem[this.vehicleType].upgrades[this.level]?.fireRate || 
+                              vehicleSystem[this.vehicleType].base.fireRate;
+                this.maxCooldown = 60 / this.fireRate;
+                break;
+            case 'helicopter':
+                this.stealth = false;
+                break;
+            case 'mech':
+                this.areaDamage = false;
+                break;
+        }
     }
 
     update() {
@@ -260,12 +437,18 @@ class Vehicle {
                     moveX += 1;
                     moved = true;
                 }
+                
+                // Special ability (Space bar)
+                if (keys[' '] && this.specialAbilityCooldown <= 0 && !this.specialAbilityActive) {
+                    this.activateSpecialAbility();
+                    keys[' '] = false; // Prevent holding
+                }
 
                 // Mouse aiming
                 if (mouse.x && mouse.y) {
                     const dx = mouse.x - this.x;
                     const dy = mouse.y - this.y;
-                    this.angle = Math.atan2(dy, dx);
+                    this.turretAngle = Math.atan2(dy, dx);
                 }
             } else {
                 // Mobile touch controls
@@ -277,6 +460,7 @@ class Vehicle {
                         moveX = dx;
                         moveY = dy;
                         this.angle = Math.atan2(dy, dx);
+                        this.turretAngle = this.angle;
                         moved = true;
                     }
                 }
@@ -289,6 +473,8 @@ class Vehicle {
                     moveX /= length;
                     moveY /= length;
                     
+                    this.angle = Math.atan2(moveY, moveX);
+                    
                     this.x += moveX * this.speed;
                     this.y += moveY * this.speed;
                 }
@@ -297,7 +483,8 @@ class Vehicle {
                     id: this.id,
                     x: this.x,
                     y: this.y,
-                    angle: this.angle
+                    angle: this.angle,
+                    turretAngle: this.turretAngle
                 });
             }
 
@@ -313,47 +500,179 @@ class Vehicle {
         this.x = Math.max(this.width/2, Math.min(mapSize - this.width/2, this.x));
         this.y = Math.max(this.height/2, Math.min(mapSize - this.height/2, this.y));
 
-        // Cooldown
+        // Cooldowns
         if (this.cooldown > 0) {
             this.cooldown--;
+        }
+        
+        if (this.specialAbilityCooldown > 0) {
+            this.specialAbilityCooldown--;
+        }
+        
+        if (this.specialAbilityActive) {
+            this.specialAbilityDuration--;
+            if (this.specialAbilityDuration <= 0) {
+                this.deactivateSpecialAbility();
+            }
         }
     }
 
     shoot() {
-        const bulletX = this.x + Math.cos(this.angle) * (this.width / 2 + 15);
-        const bulletY = this.y + Math.sin(this.angle) * (this.height / 2 + 15);
+        const bulletX = this.x + Math.cos(this.turretAngle) * (this.width / 2 + 15);
+        const bulletY = this.y + Math.sin(this.turretAngle) * (this.height / 2 + 15);
         
         socket.emit('bullet-fired', {
             x: bulletX,
             y: bulletY,
-            angle: this.angle,
-            ownerId: this.id
+            angle: this.turretAngle,
+            ownerId: this.id,
+            damage: this.damage
         });
+        
+        // Visual muzzle flash
+        explosions.push(new Explosion(
+            bulletX - Math.cos(this.turretAngle) * 10,
+            bulletY - Math.sin(this.turretAngle) * 10,
+            8,
+            '#FF9800'
+        ));
     }
 
     draw() {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
+        // Skip drawing if stealth is active (for helicopters)
+        if (this.stealth && this.isPlayer) {
+            // Only draw a faint outline
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+        }
+
         ctx.save();
         ctx.translate(screenX, screenY);
-        ctx.rotate(this.angle);
         
-        // Draw vehicle image or fallback rectangle
-        if (this.imageLoaded) {
-            ctx.drawImage(this.image, -this.width/2, -this.height/2, this.width, this.height);
+        // Draw vehicle body
+        ctx.save();
+        ctx.rotate(this.angle);
+        if (this.bodyImageLoaded) {
+            ctx.drawImage(this.bodyImage, -this.width/2, -this.height/2, this.width, this.height);
         } else {
-            // Fallback colored rectangle
+            // Fallback
             ctx.fillStyle = this.color;
             ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
             ctx.fillStyle = '#333';
-            ctx.fillRect(-8, -this.height/2, 16, this.height);
+            ctx.fillRect(-this.width/4, -this.height/2, this.width/2, this.height/3);
         }
+        ctx.restore();
+        
+        // Draw turret
+        ctx.save();
+        ctx.rotate(this.turretAngle);
+        if (this.turretImageLoaded) {
+            const turretSize = this.width * 0.7;
+            ctx.drawImage(this.turretImage, -turretSize/2, -turretSize/2, turretSize, turretSize);
+        } else {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, -3, this.width/2 + 10, 6);
+            ctx.fillStyle = '#555';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.width/4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
         
         ctx.restore();
 
+        // Draw special ability effects
+        if (this.specialAbilityActive) {
+            this.drawSpecialAbilityEffect(screenX, screenY);
+        }
+
         // Draw UI elements
         this.drawUI(screenX, screenY);
+        
+        if (this.stealth) {
+            ctx.restore(); // Restore alpha
+        }
+    }
+    
+    drawSpecialAbilityEffect(screenX, screenY) {
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                // Damage boost aura
+                ctx.strokeStyle = '#FF4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.width, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+            case 'jeep':
+                // Speed lines
+                ctx.strokeStyle = '#44FF44';
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 / 8) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, screenY);
+                    ctx.lineTo(
+                        screenX + Math.cos(angle) * (this.width + 20),
+                        screenY + Math.sin(angle) * (this.width + 20)
+                    );
+                    ctx.stroke();
+                }
+                break;
+            case 'apc':
+                // Shield effect
+                ctx.strokeStyle = '#4444FF';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.width * 0.8, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+            case 'artillery':
+                // Rapid fire particles
+                for (let i = 0; i < 5; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * this.width;
+                    ctx.fillStyle = '#FFAA00';
+                    ctx.beginPath();
+                    ctx.arc(
+                        screenX + Math.cos(angle) * dist,
+                        screenY + Math.sin(angle) * dist,
+                        3, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                break;
+            case 'helicopter':
+                // Stealth shimmer
+                ctx.strokeStyle = '#AAAAAA';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.width, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                break;
+            case 'mech':
+                // Area damage aura
+                const gradient = ctx.createRadialGradient(
+                    screenX, screenY, this.width * 0.5,
+                    screenX, screenY, this.width * 1.5
+                );
+                gradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.width * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+        }
+        
+        ctx.restore();
     }
 
     drawUI(screenX, screenY) {
@@ -373,22 +692,34 @@ class Vehicle {
         }
 
         // Draw health bar
-        if (!this.isPlayer || this.health < this.maxHealth) {
-            const barWidth = 50;
-            const barHeight = 5;
-            const healthPercent = this.health / this.maxHealth;
-            
-            ctx.fillStyle = 'red';
-            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth, barHeight);
-            ctx.fillStyle = healthPercent > 0.3 ? 'green' : 'yellow';
-            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth * healthPercent, barHeight);
+        const barWidth = 50;
+        const barHeight = 5;
+        const healthPercent = this.health / this.maxHealth;
+        
+        ctx.fillStyle = 'red';
+        ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth, barHeight);
+        ctx.fillStyle = healthPercent > 0.3 ? 'green' : 'yellow';
+        ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth * healthPercent, barHeight);
+        
+        // Draw shield bar if active
+        if (this.tempShield > 0) {
+            const shieldPercent = this.tempShield / (this.maxHealth * 0.5);
+            ctx.fillStyle = 'rgba(0, 100, 255, 0.5)';
+            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 40, barWidth * shieldPercent, 3);
+        }
+        
+        // Draw special ability cooldown
+        if (this.specialAbilityCooldown > 0 && this.isPlayer) {
+            const cooldownPercent = this.specialAbilityCooldown / 600;
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+            ctx.fillRect(screenX - barWidth/2, screenY + this.height/2 + 10, barWidth * (1 - cooldownPercent), 4);
         }
     }
 }
 
-// Bullet class
+// Enhanced Bullet class
 class Bullet {
-    constructor(x, y, angle, ownerId, damage) {
+    constructor(x, y, angle, ownerId, damage, bulletType = 'normal') {
         this.x = x;
         this.y = y;
         this.angle = angle;
@@ -396,11 +727,39 @@ class Bullet {
         this.size = 6;
         this.ownerId = ownerId;
         this.damage = damage;
+        this.bulletType = bulletType;
+        this.trail = [];
+        this.maxTrail = 5;
+    }
+    
+    update() {
+        // Store position for trail
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > this.maxTrail) {
+            this.trail.shift();
+        }
+        
+        // Move bullet
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
     }
 
     draw() {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
+        
+        // Draw trail
+        for (let i = 0; i < this.trail.length; i++) {
+            const point = this.trail[i];
+            const trailX = point.x - camera.x;
+            const trailY = point.y - camera.y;
+            const alpha = i / this.trail.length * 0.3;
+            
+            ctx.fillStyle = `rgba(255, 200, 50, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(trailX, trailY, this.size * (i / this.trail.length), 0, Math.PI * 2);
+            ctx.fill();
+        }
         
         // Bullet glow
         ctx.fillStyle = 'rgba(255, 235, 59, 0.8)';
@@ -409,25 +768,14 @@ class Bullet {
         ctx.fill();
         
         // Bullet core
-        ctx.fillStyle = '#FF5722';
+        ctx.fillStyle = this.bulletType === 'special' ? '#FF00FF' : '#FF5722';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size * 0.6, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Trail effect
-        ctx.strokeStyle = 'rgba(255, 100, 0, 0.4)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(screenX, screenY);
-        ctx.lineTo(
-            screenX - Math.cos(this.angle) * 15,
-            screenY - Math.sin(this.angle) * 15
-        );
-        ctx.stroke();
     }
 }
 
-// Resource and Explosion classes remain similar but enhanced
+// Enhanced Resource class
 class Resource {
     constructor(x, y, type, value) {
         this.x = x;
@@ -436,6 +784,7 @@ class Resource {
         this.value = value;
         this.size = 20;
         this.pulse = 0;
+        this.collected = false;
     }
 
     update() {
@@ -443,6 +792,8 @@ class Resource {
     }
 
     draw() {
+        if (this.collected) return;
+        
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
         const pulseSize = this.size + Math.sin(this.pulse) * 5;
@@ -451,7 +802,7 @@ class Resource {
         ctx.globalAlpha = 0.8 + Math.sin(this.pulse) * 0.2;
         
         if (this.type === 'health') {
-            // Health pack with cross symbol
+            // Health pack
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
             ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
@@ -462,7 +813,7 @@ class Resource {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('+', screenX, screenY);
-        } else {
+        } else if (this.type === 'ammo') {
             // Ammo crate
             ctx.fillStyle = '#FF9800';
             ctx.fillRect(screenX - pulseSize/2, screenY - pulseSize/2, pulseSize, pulseSize);
@@ -472,14 +823,27 @@ class Resource {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('A', screenX, screenY);
+        } else if (this.type === 'experience') {
+            // Experience orb
+            ctx.fillStyle = '#9C27B0';
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('XP', screenX, screenY);
         }
         
         ctx.restore();
     }
 }
 
+// Enhanced Explosion class
 class Explosion {
-    constructor(x, y, size) {
+    constructor(x, y, size, color = null) {
         this.x = x;
         this.y = y;
         this.size = size;
@@ -487,6 +851,7 @@ class Explosion {
         this.currentSize = size;
         this.growing = true;
         this.particles = [];
+        this.color = color || '#FF9800';
         this.createParticles();
     }
 
@@ -532,8 +897,8 @@ class Explosion {
             screenX, screenY, 0,
             screenX, screenY, this.currentSize
         );
-        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.9)');
-        gradient.addColorStop(0.7, 'rgba(255, 50, 0, 0.5)');
+        gradient.addColorStop(0, `rgba(255, 150, 0, 0.9)`);
+        gradient.addColorStop(0.7, `rgba(255, 50, 0, 0.5)`);
         gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
@@ -548,7 +913,7 @@ class Explosion {
             
             ctx.save();
             ctx.globalAlpha = particle.life;
-            ctx.fillStyle = `rgb(255, ${Math.random() * 100 + 100}, 0)`;
+            ctx.fillStyle = this.color;
             ctx.beginPath();
             ctx.arc(particleX, particleY, particle.size, 0, Math.PI * 2);
             ctx.fill();
@@ -568,8 +933,7 @@ socket.on('connect', () => {
 });
 
 socket.on('game-config', (config) => {
-    vehicleSystem = config.vehicleSystem;
-    mapSize = config.mapSize;
+    mapSize = config.mapSize || mapSize;
     document.getElementById('startButton').disabled = false;
 });
 
@@ -585,6 +949,7 @@ socket.on('game-state', (gameState) => {
                 player.score = playerData.score;
                 player.experience = playerData.experience;
                 player.level = playerData.level;
+                player.turretAngle = playerData.turretAngle || player.turretAngle;
                 
                 // Update UI
                 healthDisplay.textContent = Math.ceil(player.health);
@@ -614,18 +979,21 @@ socket.on('game-state', (gameState) => {
         vehicle.score = playerData.score;
         vehicle.experience = playerData.experience;
         vehicle.level = playerData.level;
+        vehicle.angle = playerData.angle;
+        vehicle.turretAngle = playerData.turretAngle || playerData.angle;
         vehicle.updateStats();
         return vehicle;
     });
     
     bullets = gameState.bullets.map(bulletData => {
-        return new Bullet(
+        const bullet = new Bullet(
             bulletData.x, 
             bulletData.y, 
             bulletData.angle, 
             bulletData.ownerId,
             bulletData.damage
         );
+        return bullet;
     });
     
     obstacles = gameState.obstacles;
@@ -643,11 +1011,13 @@ socket.on('leaderboard-update', (updatedLeaderboard) => {
 
 socket.on('player-hit', (data) => {
     if (data.playerId === playerId) {
-        player.health = data.newHealth;
-        healthDisplay.textContent = Math.ceil(player.health);
+        if (player) {
+            player.health = data.newHealth;
+            healthDisplay.textContent = Math.ceil(player.health);
+        }
         explosions.push(new Explosion(data.x, data.y, 25));
         
-        if (player.health <= 0) {
+        if (data.newHealth <= 0) {
             setTimeout(() => {
                 showGameOver();
             }, 1000);
@@ -658,31 +1028,25 @@ socket.on('player-hit', (data) => {
 });
 
 socket.on('player-killed', (data) => {
-    if (data.killerId === playerId) {
+    if (data.killerId === playerId && player) {
         player.kills++;
         player.score += 100;
         player.experience += 50;
         killsDisplay.textContent = player.kills;
         scoreDisplay.textContent = player.score;
         
-        // Check for level up
+        // Check for level up (every 300 experience)
         const newLevel = Math.floor(player.experience / 300) + 1;
         if (newLevel > player.level && player.levelUp()) {
             levelDisplay.textContent = player.level;
             vehicleNameDisplay.textContent = player.displayName;
-            
-            // Level up effect
-            for (let i = 0; i < 10; i++) {
-                explosions.push(new Explosion(player.x + Math.random() * 50 - 25, player.y + Math.random() * 50 - 25, 15));
-            }
         }
     }
     
-    explosions.push(new Explosion(
-        players.find(p => p.id === data.victimId)?.x || 0,
-        players.find(p => p.id === data.victimId)?.y || 0,
-        35
-    ));
+    const victim = players.find(p => p.id === data.victimId);
+    if (victim) {
+        explosions.push(new Explosion(victim.x, victim.y, 35));
+    }
 });
 
 // Game functions
@@ -696,7 +1060,7 @@ function initGame() {
         true, 
         playerId,
         selectedVehicle,
-        getRandomColor(),
+        null, // Let vehicle choose its default color
         playerName
     );
     
@@ -709,6 +1073,7 @@ function initGame() {
     
     bullets = [];
     explosions = [];
+    startTime = Date.now();
     
     healthDisplay.textContent = Math.ceil(player.health);
     killsDisplay.textContent = player.kills;
@@ -718,11 +1083,87 @@ function initGame() {
     
     camera.x = player.x - canvas.width / 2;
     camera.y = player.y - canvas.height / 2;
+    
+    generateObstacles();
+    generateResources();
 }
 
-function getRandomColor() {
-    const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
-    return colors[Math.floor(Math.random() * colors.length)];
+function generateObstacles() {
+    obstacles = [];
+    
+    // Generate random obstacles
+    for (let i = 0; i < 50; i++) {
+        obstacles.push({
+            x: Math.random() * mapSize,
+            y: Math.random() * mapSize,
+            width: 40 + Math.random() * 80,
+            height: 40 + Math.random() * 80
+        });
+    }
+    
+    // Generate some large terrain features
+    for (let i = 0; i < 8; i++) {
+        obstacles.push({
+            x: Math.random() * mapSize,
+            y: Math.random() * mapSize,
+            width: 150 + Math.random() * 150,
+            height: 150 + Math.random() * 150
+        });
+    }
+    
+    // Generate some walls
+    for (let i = 0; i < 10; i++) {
+        const isHorizontal = Math.random() > 0.5;
+        if (isHorizontal) {
+            obstacles.push({
+                x: Math.random() * mapSize,
+                y: Math.random() * mapSize,
+                width: 200 + Math.random() * 300,
+                height: 30
+            });
+        } else {
+            obstacles.push({
+                x: Math.random() * mapSize,
+                y: Math.random() * mapSize,
+                width: 30,
+                height: 200 + Math.random() * 300
+            });
+        }
+    }
+}
+
+function generateResources() {
+    resources = [];
+    
+    // Generate health packs
+    for (let i = 0; i < 20; i++) {
+        resources.push(new Resource(
+            Math.random() * mapSize,
+            Math.random() * mapSize,
+            'health',
+            25
+        ));
+    }
+    
+    // Generate ammo crates
+    for (let i = 0; i < 15; i++) {
+        resources.push(new Resource(
+            Math.random() * mapSize,
+            Math.random() * mapSize,
+            'ammo',
+            50
+        ));
+    }
+    
+    // Generate experience orbs
+    for (let i = 0; i < 25; i++) {
+        resources.push(new Resource(
+            Math.random() * mapSize,
+            Math.random() * mapSize,
+            'experience',
+            25
+        ));
+    }
 }
 
 function updateLeaderboard() {
@@ -765,6 +1206,7 @@ function drawMiniMap() {
     
     const scale = minimap.width / mapSize;
     
+    // Draw obstacles
     minimapCtx.fillStyle = '#666';
     obstacles.forEach(obstacle => {
         minimapCtx.fillRect(
@@ -775,18 +1217,25 @@ function drawMiniMap() {
         );
     });
     
+    // Draw resources
     resources.forEach(resource => {
-        minimapCtx.fillStyle = resource.type === 'health' ? '#4CAF50' : '#FF9800';
+        if (resource.collected) return;
+        
+        if (resource.type === 'health') {
+            minimapCtx.fillStyle = '#4CAF50';
+        } else if (resource.type === 'ammo') {
+            minimapCtx.fillStyle = '#FF9800';
+        } else {
+            minimapCtx.fillStyle = '#9C27B0';
+        }
         minimapCtx.beginPath();
         minimapCtx.arc(resource.x * scale, resource.y * scale, 2, 0, Math.PI * 2);
         minimapCtx.fill();
     });
     
+    // Draw players
     players.forEach(p => {
-        minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : 
-                              p.vehicleType === 'tank' ? '#4CAF50' : 
-                              p.vehicleType === 'jeep' ? '#FF9800' : 
-                              p.vehicleType === 'apc' ? '#795548' : '#607D8B';
+        minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : p.color;
         minimapCtx.beginPath();
         minimapCtx.arc(p.x * scale, p.y * scale, 3, 0, Math.PI * 2);
         minimapCtx.fill();
@@ -803,6 +1252,7 @@ function drawMiniMap() {
         minimapCtx.stroke();
     });
     
+    // Draw camera view
     minimapCtx.strokeStyle = '#ffd700';
     minimapCtx.lineWidth = 2;
     minimapCtx.strokeRect(
@@ -815,11 +1265,54 @@ function drawMiniMap() {
 
 function showGameOver() {
     gameRunning = false;
-    finalScoreDisplay.textContent = player.score;
-    finalKillsDisplay.textContent = player.kills;
-    finalLevelDisplay.textContent = player.level;
-    survivalTimeDisplay.textContent = Math.floor((600 - gameTime) / 60) + 'm ' + ((600 - gameTime) % 60) + 's';
+    if (player) {
+        finalScoreDisplay.textContent = player.score;
+        finalKillsDisplay.textContent = player.kills;
+        finalLevelDisplay.textContent = player.level;
+        const survivalSeconds = Math.floor((Date.now() - startTime) / 1000);
+        survivalTimeDisplay.textContent = Math.floor(survivalSeconds / 60) + 'm ' + (survivalSeconds % 60) + 's';
+    }
     gameOverScreen.classList.remove('hidden');
+}
+
+// Enhanced terrain drawing
+function drawGrid() {
+    const gridSize = 100;
+    const startX = Math.floor(camera.x / gridSize) * gridSize;
+    const startY = Math.floor(camera.y / gridSize) * gridSize;
+    
+    // Draw different terrain types
+    for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
+        for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
+            const screenX = x - camera.x;
+            const screenY = y - camera.y;
+            
+            // Alternate terrain patterns
+            const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
+            
+            switch(pattern) {
+                case 0:
+                    ctx.fillStyle = 'rgba(45, 80, 22, 0.8)'; // Dark grass
+                    break;
+                case 1:
+                    ctx.fillStyle = 'rgba(60, 100, 30, 0.8)'; // Medium grass
+                    break;
+                case 2:
+                    ctx.fillStyle = 'rgba(74, 124, 58, 0.8)'; // Light grass
+                    break;
+                case 3:
+                    ctx.fillStyle = 'rgba(85, 140, 65, 0.8)'; // Bright grass
+                    break;
+            }
+            
+            ctx.fillRect(screenX, screenY, gridSize, gridSize);
+            
+            // Grid lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(screenX, screenY, gridSize, gridSize);
+        }
+    }
 }
 
 // Game loop
@@ -834,11 +1327,13 @@ function gameLoop(timestamp) {
     
     drawGrid();
     
+    // Update and draw resources
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
     
+    // Draw obstacles
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -864,6 +1359,7 @@ function gameLoop(timestamp) {
         }
     });
     
+    // Update and draw players
     players.forEach(p => {
         if (p.isPlayer) {
             p.update();
@@ -871,8 +1367,13 @@ function gameLoop(timestamp) {
         p.draw();
     });
     
-    bullets.forEach(bullet => bullet.draw());
+    // Update and draw bullets
+    bullets.forEach(bullet => {
+        bullet.update();
+        bullet.draw();
+    });
     
+    // Update and draw explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
@@ -885,29 +1386,35 @@ function gameLoop(timestamp) {
     
     drawMiniMap();
     
+    // Draw HUD information
+    drawHUD();
+    
     requestAnimationFrame(gameLoop);
 }
 
-function drawGrid() {
-    const gridSize = 100;
-    const startX = Math.floor(camera.x / gridSize) * gridSize;
-    const startY = Math.floor(camera.y / gridSize) * gridSize;
+function drawHUD() {
+    // Draw controls help
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, canvas.height - 100, 200, 90);
     
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
     
-    for (let x = startX; x < camera.x + canvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x - camera.x, 0);
-        ctx.lineTo(x - camera.x, canvas.height);
-        ctx.stroke();
+    if (!isMobile) {
+        ctx.fillText('WASD: Move', 20, canvas.height - 80);
+        ctx.fillText('Mouse: Aim', 20, canvas.height - 60);
+        ctx.fillText('Click: Shoot', 20, canvas.height - 40);
+        ctx.fillText('Space: Special Ability', 20, canvas.height - 20);
+    } else {
+        ctx.fillText('Touch: Move', 20, canvas.height - 80);
+        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
     }
     
-    for (let y = startY; y < camera.y + canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y - camera.y);
-        ctx.lineTo(canvas.width, y - camera.y);
-        ctx.stroke();
+    // Draw ability info if available
+    if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
 }
 
@@ -931,7 +1438,7 @@ playAgainButton.addEventListener('click', () => {
 });
 
 window.addEventListener('beforeunload', () => {
-    if (gameRunning) {
+    if (gameRunning && playerId) {
         socket.emit('leave-game', playerId);
     }
 });
