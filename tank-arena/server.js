@@ -7,18 +7,38 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname)));
+// --- FIX FOR DEPLOYMENT ---
+// This tells Express to serve all your front-end files (index.html, images)
+// from a 'public' folder located in the same directory as this server.js file.
+const publicPath = path.join(__dirname, 'public');
 
+// --- HELPFUL DEBUGGING LOGS ---
+// These lines will print in your Render logs so you can confirm the paths are correct.
+console.log(`[Server Info] Current script directory (__dirname): ${__dirname}`);
+console.log(`[Server Info] Serving static files from: ${publicPath}`);
+
+app.use(express.static(publicPath));
+
+// This is the main route. It ensures that anyone visiting your website
+// gets the index.html file.
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(publicPath, 'index.html');
+  console.log(`[Request Info] Attempting to send file: ${indexPath}`);
+  res.sendFile(indexPath, (err) => {
+      if (err) {
+          // If there's an error, it will show up in your Render logs.
+          console.error("[Server Error] Failed to send index.html:", err);
+          res.status(500).send("Server error: Could not find index.html. Please check the server logs for path details.");
+      }
+  });
 });
+
 
 // Game Configuration
 const MAP_SIZE = 3000;
 const MAX_PLAYERS = 50;
 
-// Enhanced Vehicle System with Upgrades
+// Vehicle System with Upgrades
 const VEHICLE_SYSTEM = {
   tank: {
     base: { health: 150, speed: 2, damage: 35, size: 60 },
@@ -61,19 +81,13 @@ const gameState = {
 
 function generateObstacles() {
   const obstacles = [];
-  // Border walls
-  obstacles.push({ x: 0, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE/2, y: 0, width: MAP_SIZE, height: 50, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE/2, y: MAP_SIZE, width: MAP_SIZE, height: 50, type: 'wall' });
-
   for (let i = 0; i < 50; i++) {
     obstacles.push({
       x: Math.random() * (MAP_SIZE - 200) + 100,
       y: Math.random() * (MAP_SIZE - 200) + 100,
       width: Math.random() * 100 + 50,
       height: Math.random() * 100 + 50,
-      type: Math.random() > 0.7 ? 'destructible' : 'wall'
+      type: 'wall'
     });
   }
   return obstacles;
@@ -85,8 +99,7 @@ function generateResources() {
     resources.push({
       x: Math.random() * (MAP_SIZE - 100) + 50,
       y: Math.random() * (MAP_SIZE - 100) + 50,
-      type: Math.random() > 0.5 ? 'health' : 'ammo',
-      value: Math.random() > 0.5 ? 25 : 50
+      type: Math.random() > 0.5 ? 'health' : 'ammo'
     });
   }
   return resources;
@@ -110,13 +123,11 @@ function gameLoop() {
 }
 
 function updateGameState() {
-    // Move bullets and filter out old ones
     gameState.bullets = gameState.bullets.filter(bullet => {
         bullet.x += Math.cos(bullet.angle) * bullet.speed;
         bullet.y += Math.sin(bullet.angle) * bullet.speed;
         return bullet.x > 0 && bullet.x < MAP_SIZE && bullet.y > 0 && bullet.y < MAP_SIZE;
     });
-
     checkCollisions();
 }
 
@@ -184,10 +195,7 @@ function updateLeaderboard() {
       id: player.id,
       name: player.name,
       score: player.score || 0,
-      kills: player.kills || 0,
-      experience: player.experience || 0,
       level: player.level || 1,
-      vehicle: player.vehicleType
     }))
     .sort((a, b) => b.score - a.score);
   
@@ -201,8 +209,6 @@ io.on('connection', (socket) => {
     mapSize: MAP_SIZE,
     vehicleSystem: VEHICLE_SYSTEM
   });
-  
-  socket.emit('game-state', gameState);
   
   socket.on('join-game', (playerData) => {
     if (Object.keys(gameState.players).length >= MAX_PLAYERS) {
@@ -226,8 +232,6 @@ io.on('connection', (socket) => {
       experience: 0,
       level: 1
     };
-    
-    io.emit('game-state', gameState);
   });
   
   socket.on('player-update', (playerData) => {
@@ -252,7 +256,6 @@ io.on('connection', (socket) => {
   
   socket.on('disconnect', () => {
     delete gameState.players[socket.id];
-    io.emit('game-state', gameState);
   });
 });
 
@@ -262,3 +265,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
