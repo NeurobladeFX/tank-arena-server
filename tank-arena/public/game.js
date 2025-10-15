@@ -66,57 +66,57 @@ let startTime = Date.now();
 // Enhanced Vehicle System with 5 levels and 6 vehicles
 const vehicleSystem = {
     tank: {
-        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, rotationSpeed: 0.05, size: 70, fireRate: 1.0 },
+        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, rotationSpeed: 0.03, size: 70, fireRate: 1.0 },
         upgrades: {
-            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, rotationSpeed: 0.06, size: 75, fireRate: 1.1 },
-            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, rotationSpeed: 0.07, size: 80, fireRate: 1.2 },
-            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, rotationSpeed: 0.08, size: 85, fireRate: 1.3 },
-            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, rotationSpeed: 0.09, size: 90, fireRate: 1.5 }
+            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, rotationSpeed: 0.035, size: 75, fireRate: 1.1 },
+            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, rotationSpeed: 0.04, size: 80, fireRate: 1.2 },
+            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, rotationSpeed: 0.045, size: 85, fireRate: 1.3 },
+            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, rotationSpeed: 0.05, size: 90, fireRate: 1.5 }
         }
     },
     jeep: {
-        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, rotationSpeed: 0.08, size: 55, fireRate: 1.2 },
+        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, rotationSpeed: 0.05, size: 55, fireRate: 1.2 },
         upgrades: {
-            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, rotationSpeed: 0.09, size: 58, fireRate: 1.3 },
-            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, rotationSpeed: 0.10, size: 62, fireRate: 1.4 },
-            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, rotationSpeed: 0.11, size: 65, fireRate: 1.5 },
-            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, rotationSpeed: 0.12, size: 70, fireRate: 1.7 }
+            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, rotationSpeed: 0.055, size: 58, fireRate: 1.3 },
+            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, rotationSpeed: 0.06, size: 62, fireRate: 1.4 },
+            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, rotationSpeed: 0.065, size: 65, fireRate: 1.5 },
+            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, rotationSpeed: 0.07, size: 70, fireRate: 1.7 }
         }
     },
     apc: {
-        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, rotationSpeed: 0.04, size: 80, fireRate: 0.8 },
+        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, rotationSpeed: 0.025, size: 80, fireRate: 0.8 },
         upgrades: {
-            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, rotationSpeed: 0.05, size: 85, fireRate: 0.9 },
-            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, rotationSpeed: 0.06, size: 90, fireRate: 1.0 },
-            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, rotationSpeed: 0.07, size: 95, fireRate: 1.1 },
-            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, rotationSpeed: 0.08, size: 100, fireRate: 1.2 }
+            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, rotationSpeed: 0.03, size: 85, fireRate: 0.9 },
+            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, rotationSpeed: 0.035, size: 90, fireRate: 1.0 },
+            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, rotationSpeed: 0.04, size: 95, fireRate: 1.1 },
+            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, rotationSpeed: 0.045, size: 100, fireRate: 1.2 }
         }
     },
     artillery: {
-        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, rotationSpeed: 0.03, size: 70, fireRate: 0.5 },
+        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, rotationSpeed: 0.02, size: 70, fireRate: 0.5 },
         upgrades: {
-            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, rotationSpeed: 0.04, size: 75, fireRate: 0.6 },
-            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, rotationSpeed: 0.05, size: 80, fireRate: 0.7 },
-            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, rotationSpeed: 0.06, size: 85, fireRate: 0.8 },
-            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, rotationSpeed: 0.07, size: 90, fireRate: 0.9 }
+            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, rotationSpeed: 0.025, size: 75, fireRate: 0.6 },
+            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, rotationSpeed: 0.03, size: 80, fireRate: 0.7 },
+            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, rotationSpeed: 0.035, size: 85, fireRate: 0.8 },
+            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, rotationSpeed: 0.04, size: 90, fireRate: 0.9 }
         }
     },
     helicopter: {
-        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, rotationSpeed: 0.10, size: 60, fireRate: 2.0 },
+        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, rotationSpeed: 0.06, size: 60, fireRate: 2.0 },
         upgrades: {
-            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, rotationSpeed: 0.11, size: 65, fireRate: 2.2 },
-            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, rotationSpeed: 0.12, size: 70, fireRate: 2.4 },
-            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, rotationSpeed: 0.13, size: 75, fireRate: 2.6 },
-            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, rotationSpeed: 0.14, size: 80, fireRate: 2.8 }
+            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, rotationSpeed: 0.065, size: 65, fireRate: 2.2 },
+            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, rotationSpeed: 0.07, size: 70, fireRate: 2.4 },
+            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, rotationSpeed: 0.075, size: 75, fireRate: 2.6 },
+            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, rotationSpeed: 0.08, size: 80, fireRate: 2.8 }
         }
     },
     mech: {
-        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, rotationSpeed: 0.06, size: 65, fireRate: 0.9 },
+        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, rotationSpeed: 0.04, size: 65, fireRate: 0.9 },
         upgrades: {
-            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, rotationSpeed: 0.07, size: 70, fireRate: 1.0 },
-            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, rotationSpeed: 0.08, size: 75, fireRate: 1.1 },
-            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, rotationSpeed: 0.09, size: 80, fireRate: 1.2 },
-            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, rotationSpeed: 0.10, size: 85, fireRate: 1.3 }
+            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, rotationSpeed: 0.045, size: 70, fireRate: 1.0 },
+            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, rotationSpeed: 0.05, size: 75, fireRate: 1.1 },
+            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, rotationSpeed: 0.055, size: 80, fireRate: 1.2 },
+            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, rotationSpeed: 0.06, size: 85, fireRate: 1.3 }
         }
     }
 };
@@ -179,9 +179,9 @@ if (isMobile) {
         touch.x = touchEvent.clientX - rect.left;
         touch.y = touchEvent.clientY - rect.top;
         
-        // Calculate movement direction
-        touch.moveX = (touch.x - touch.startX) * 0.02;
-        touch.moveY = (touch.y - touch.startY) * 0.02;
+        // Calculate movement direction with reduced sensitivity
+        touch.moveX = (touch.x - touch.startX) * 0.015;
+        touch.moveY = (touch.y - touch.startY) * 0.015;
     });
     
     touchArea.addEventListener('touchend', (e) => {
@@ -241,7 +241,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with proper tank controls
+// Vehicle class with improved steering
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -347,7 +347,7 @@ class Vehicle {
         this.width = stats.size;
         this.height = stats.size;
         this.speed = stats.speed;
-        this.rotationSpeed = stats.rotationSpeed;
+        this.rotationSpeed = stats.rotationSpeed; // Reduced steering sensitivity
         this.maxHealth = stats.health;
         this.damage = stats.damage;
         this.fireRate = stats.fireRate;
@@ -456,7 +456,7 @@ class Vehicle {
                 this.turningLeft = keys['a'] || keys['arrowleft'];
                 this.turningRight = keys['d'] || keys['arrowright'];
                 
-                // Apply rotation
+                // Apply rotation with reduced sensitivity
                 if (this.turningLeft) {
                     this.angle -= this.rotationSpeed;
                     moved = true;
@@ -491,20 +491,20 @@ class Vehicle {
                     this.turretAngle = Math.atan2(dy, dx);
                 }
             } else {
-                // FIXED Mobile touch controls - PROPER TANK CONTROLS
+                // IMPROVED Mobile touch controls with reduced sensitivity
                 if (touch.active) {
                     const dx = touch.moveX;
                     const dy = touch.moveY;
                     
-                    // Use X for rotation, Y for movement
-                    if (Math.abs(dx) > 0.1) {
-                        this.angle += dx * this.rotationSpeed * 10;
+                    // Use X for rotation, Y for movement with reduced sensitivity
+                    if (Math.abs(dx) > 0.05) {
+                        this.angle += dx * this.rotationSpeed * 8; // Reduced from 10 to 8
                         moved = true;
                     }
                     
-                    if (Math.abs(dy) > 0.1) {
-                        this.x += Math.cos(this.angle) * dy * this.speed * 10;
-                        this.y += Math.sin(this.angle) * dy * this.speed * 10;
+                    if (Math.abs(dy) > 0.05) {
+                        this.x += Math.cos(this.angle) * dy * this.speed * 8; // Reduced from 10 to 8
+                        this.y += Math.sin(this.angle) * dy * this.speed * 8;
                         moved = true;
                     }
                     
@@ -1120,7 +1120,7 @@ socket.on('bullet-created', (bulletData) => {
     ));
 });
 
-// NEW: Resource collection now properly gives points
+// Resource collection now properly gives points
 socket.on('resource-collected', (data) => {
     // Remove the collected resource
     resources = resources.filter(r => 
@@ -1175,15 +1175,17 @@ socket.on('player-upgraded', (data) => {
     }
 });
 
-// NEW: Handle vehicle upgrade selection
+// FIXED: Handle vehicle upgrade selection
 socket.on('show-upgrade-screen', (data) => {
+    console.log('Received upgrade screen request:', data);
     if (data.playerId === playerId) {
         showUpgradeSelection(data.nextLevel);
     }
 });
 
-// NEW: Handle successful vehicle upgrade
+// FIXED: Handle successful vehicle upgrade
 socket.on('vehicle-upgraded', (data) => {
+    console.log('Vehicle upgraded:', data);
     if (data.playerId === playerId && player) {
         player.vehicleType = data.newVehicleType;
         player.level = data.newLevel;
@@ -1203,47 +1205,131 @@ socket.on('vehicle-upgraded', (data) => {
     }
 });
 
-// NEW: Show upgrade selection screen
+// FIXED: Show upgrade selection screen
 function showUpgradeSelection(nextLevel) {
+    console.log('Showing upgrade screen for level', nextLevel);
+    
+    // Create upgrade screen
     const upgradeScreen = document.createElement('div');
     upgradeScreen.id = 'upgradeScreen';
+    upgradeScreen.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+    
     upgradeScreen.innerHTML = `
-        <div id="upgradeContent">
-            <h2>🚀 VEHICLE UPGRADE AVAILABLE!</h2>
-            <p>You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
-            <div class="upgrade-options">
-                <div class="upgrade-option" data-vehicle="tank">
-                    <div class="vehicle-icon">🚀</div>
-                    <div class="vehicle-name">${vehicleSystem.tank.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.tank.upgrades[nextLevel]?.health || 'MAX'} | Damage: ${vehicleSystem.tank.upgrades[nextLevel]?.damage || 'MAX'}</div>
+        <div id="upgradeContent" style="
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #ffd700;
+            text-align: center;
+            color: white;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        ">
+            <h2 style="color: #ffd700; margin-bottom: 15px;">🚀 VEHICLE UPGRADE AVAILABLE!</h2>
+            <p style="margin-bottom: 20px; font-size: 1.2em;">You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
+            <div class="upgrade-options" style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin: 20px 0;
+            ">
+                <div class="upgrade-option" data-vehicle="tank" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚀</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.tank.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.tank.upgrades[nextLevel]?.health || 'MAX'} | Damage: ${vehicleSystem.tank.upgrades[nextLevel]?.damage || 'MAX'}</div>
                 </div>
-                <div class="upgrade-option" data-vehicle="jeep">
-                    <div class="vehicle-icon">🚙</div>
-                    <div class="vehicle-name">${vehicleSystem.jeep.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.jeep.upgrades[nextLevel]?.health || 'MAX'} | Speed: ${vehicleSystem.jeep.upgrades[nextLevel]?.speed || 'MAX'}</div>
+                <div class="upgrade-option" data-vehicle="jeep" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚙</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.jeep.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.jeep.upgrades[nextLevel]?.health || 'MAX'} | Speed: ${vehicleSystem.jeep.upgrades[nextLevel]?.speed || 'MAX'}</div>
                 </div>
-                <div class="upgrade-option" data-vehicle="apc">
-                    <div class="vehicle-icon">🚜</div>
-                    <div class="vehicle-name">${vehicleSystem.apc.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.apc.upgrades[nextLevel]?.health || 'MAX'} | Armor: Heavy</div>
+                <div class="upgrade-option" data-vehicle="apc" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚜</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.apc.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.apc.upgrades[nextLevel]?.health || 'MAX'} | Armor: Heavy</div>
                 </div>
-                <div class="upgrade-option" data-vehicle="artillery">
-                    <div class="vehicle-icon">🚛</div>
-                    <div class="vehicle-name">${vehicleSystem.artillery.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Damage: ${vehicleSystem.artillery.upgrades[nextLevel]?.damage || 'MAX'} | Range: Long</div>
+                <div class="upgrade-option" data-vehicle="artillery" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚛</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.artillery.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Damage: ${vehicleSystem.artillery.upgrades[nextLevel]?.damage || 'MAX'} | Range: Long</div>
                 </div>
-                <div class="upgrade-option" data-vehicle="helicopter">
-                    <div class="vehicle-icon">🚁</div>
-                    <div class="vehicle-name">${vehicleSystem.helicopter.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Speed: ${vehicleSystem.helicopter.upgrades[nextLevel]?.speed || 'MAX'} | Mobility: High</div>
+                <div class="upgrade-option" data-vehicle="helicopter" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚁</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.helicopter.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Speed: ${vehicleSystem.helicopter.upgrades[nextLevel]?.speed || 'MAX'} | Mobility: High</div>
                 </div>
-                <div class="upgrade-option" data-vehicle="mech">
-                    <div class="vehicle-icon">🤖</div>
-                    <div class="vehicle-name">${vehicleSystem.mech.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.mech.upgrades[nextLevel]?.health || 'MAX'} | Power: High</div>
+                <div class="upgrade-option" data-vehicle="mech" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">
+                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🤖</div>
+                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.mech.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.mech.upgrades[nextLevel]?.health || 'MAX'} | Power: High</div>
                 </div>
             </div>
-            <button id="confirmUpgrade">CONFIRM UPGRADE</button>
+            <button id="confirmUpgrade" style="
+                padding: 15px 30px;
+                background: linear-gradient(45deg, #4CAF50, #45a049);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                cursor: pointer;
+                margin-top: 20px;
+                transition: all 0.3s ease;
+            ">CONFIRM UPGRADE</button>
         </div>
     `;
     
@@ -1255,21 +1341,29 @@ function showUpgradeSelection(nextLevel) {
     document.querySelectorAll('.upgrade-option').forEach(option => {
         option.addEventListener('click', () => {
             document.querySelectorAll('.upgrade-option').forEach(opt => {
-                opt.classList.remove('selected');
+                opt.style.borderColor = 'transparent';
+                opt.style.background = 'rgba(255, 255, 255, 0.1)';
+                opt.style.transform = 'none';
             });
-            option.classList.add('selected');
+            option.style.borderColor = '#ffd700';
+            option.style.background = 'rgba(255, 215, 0, 0.2)';
+            option.style.transform = 'translateY(-5px)';
             selectedVehicle = option.dataset.vehicle;
+            console.log('Selected vehicle:', selectedVehicle);
         });
     });
     
     // Auto-select current vehicle
     const currentOption = document.querySelector(`.upgrade-option[data-vehicle="${selectedVehicle}"]`);
     if (currentOption) {
-        currentOption.classList.add('selected');
+        currentOption.style.borderColor = '#ffd700';
+        currentOption.style.background = 'rgba(255, 215, 0, 0.2)';
+        currentOption.style.transform = 'translateY(-5px)';
     }
     
     // Handle confirmation
     document.getElementById('confirmUpgrade').addEventListener('click', () => {
+        console.log('Confirming upgrade to:', selectedVehicle, 'at level:', nextLevel);
         socket.emit('select-vehicle-upgrade', {
             playerId: playerId,
             newVehicleType: selectedVehicle,
@@ -1279,7 +1373,7 @@ function showUpgradeSelection(nextLevel) {
     });
 }
 
-// NEW: Check for resource collection
+// Check for resource collection
 function checkResourceCollection() {
     if (!player) return;
     
@@ -1686,7 +1780,7 @@ function gameLoop(timestamp) {
         }
     }
     
-    // FIXED: Check for resource collection every frame
+    // Check for resource collection every frame
     checkResourceCollection();
     
     drawMiniMap();
