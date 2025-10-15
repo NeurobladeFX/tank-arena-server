@@ -66,57 +66,57 @@ let startTime = Date.now();
 // Enhanced Vehicle System with 5 levels and 6 vehicles - INCREASED SIZES
 const vehicleSystem = {
     tank: {
-        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 70, fireRate: 1.0 }, // Increased from 50 to 70
+        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 70, fireRate: 1.0 },
         upgrades: {
-            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 75, fireRate: 1.1 }, // Increased from 55 to 75
-            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 80, fireRate: 1.2 }, // Increased from 60 to 80
-            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 85, fireRate: 1.3 }, // Increased from 65 to 85
-            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 90, fireRate: 1.5 }  // Increased from 70 to 90
+            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 75, fireRate: 1.1 },
+            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 80, fireRate: 1.2 },
+            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 85, fireRate: 1.3 },
+            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 90, fireRate: 1.5 }
         }
     },
     jeep: {
-        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 55, fireRate: 1.2 }, // Increased from 40 to 55
+        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 55, fireRate: 1.2 },
         upgrades: {
-            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 58, fireRate: 1.3 }, // Increased from 42 to 58
-            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 62, fireRate: 1.4 }, // Increased from 45 to 62
-            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 65, fireRate: 1.5 }, // Increased from 48 to 65
-            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 70, fireRate: 1.7 }  // Increased from 50 to 70
+            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 58, fireRate: 1.3 },
+            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 62, fireRate: 1.4 },
+            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 65, fireRate: 1.5 },
+            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 70, fireRate: 1.7 }
         }
     },
     apc: {
-        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 80, fireRate: 0.8 }, // Increased from 60 to 80
+        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 80, fireRate: 0.8 },
         upgrades: {
-            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 85, fireRate: 0.9 }, // Increased from 65 to 85
-            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 90, fireRate: 1.0 }, // Increased from 70 to 90
-            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 95, fireRate: 1.1 }, // Increased from 75 to 95
-            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 100, fireRate: 1.2 }   // Increased from 80 to 100
+            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 85, fireRate: 0.9 },
+            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 90, fireRate: 1.0 },
+            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 95, fireRate: 1.1 },
+            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 100, fireRate: 1.2 }
         }
     },
     artillery: {
-        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 70, fireRate: 0.5 }, // Increased from 55 to 70
+        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 70, fireRate: 0.5 },
         upgrades: {
-            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 75, fireRate: 0.6 }, // Increased from 60 to 75
-            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 80, fireRate: 0.7 }, // Increased from 65 to 80
-            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 85, fireRate: 0.8 }, // Increased from 70 to 85
-            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 90, fireRate: 0.9 }  // Increased from 75 to 90
+            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 75, fireRate: 0.6 },
+            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 80, fireRate: 0.7 },
+            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 85, fireRate: 0.8 },
+            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 90, fireRate: 0.9 }
         }
     },
     helicopter: {
-        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 60, fireRate: 2.0 }, // Increased from 45 to 60
+        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 60, fireRate: 2.0 },
         upgrades: {
-            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 65, fireRate: 2.2 }, // Increased from 48 to 65
-            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 70, fireRate: 2.4 }, // Increased from 52 to 70
-            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 75, fireRate: 2.6 }, // Increased from 55 to 75
-            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 80, fireRate: 2.8 }   // Increased from 58 to 80
+            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 65, fireRate: 2.2 },
+            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 70, fireRate: 2.4 },
+            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 75, fireRate: 2.6 },
+            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 80, fireRate: 2.8 }
         }
     },
     mech: {
-        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 65, fireRate: 0.9 }, // Increased from 52 to 65
+        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 65, fireRate: 0.9 },
         upgrades: {
-            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 70, fireRate: 1.0 }, // Increased from 56 to 70
-            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 75, fireRate: 1.1 }, // Increased from 60 to 75
-            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 80, fireRate: 1.2 }, // Increased from 64 to 80
-            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 85, fireRate: 1.3 }   // Increased from 68 to 85
+            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 70, fireRate: 1.0 },
+            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 75, fireRate: 1.1 },
+            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 80, fireRate: 1.2 },
+            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 85, fireRate: 1.3 }
         }
     }
 };
@@ -129,7 +129,9 @@ const touch = {
     x: 0,
     y: 0,
     startX: 0,
-    startY: 0
+    startY: 0,
+    moveX: 0,
+    moveY: 0
 };
 
 // Detect mobile device
@@ -150,9 +152,11 @@ canvas.addEventListener('mousemove', (e) => {
     mouse.y = e.clientY - rect.top + camera.y;
 });
 
-// Mobile controls
+// Mobile controls - FIXED
 if (isMobile) {
     mobileControls.style.display = 'block';
+    
+    let touchStartTime = 0;
     
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -163,6 +167,7 @@ if (isMobile) {
         touch.startY = touchEvent.clientY - rect.top;
         touch.x = touch.startX;
         touch.y = touch.startY;
+        touchStartTime = Date.now();
     });
     
     touchArea.addEventListener('touchmove', (e) => {
@@ -173,21 +178,45 @@ if (isMobile) {
         const rect = canvas.getBoundingClientRect();
         touch.x = touchEvent.clientX - rect.left;
         touch.y = touchEvent.clientY - rect.top;
+        
+        // Calculate movement direction
+        touch.moveX = (touch.x - touch.startX) * 0.02; // Reduced sensitivity
+        touch.moveY = (touch.y - touch.startY) * 0.02;
     });
     
     touchArea.addEventListener('touchend', (e) => {
         e.preventDefault();
         touch.active = false;
+        touch.moveX = 0;
+        touch.moveY = 0;
     });
     
+    // Fire button with better touch handling
     fireButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         mouse.clicked = true;
+        // Visual feedback
+        fireButton.style.transform = 'scale(0.9)';
+        fireButton.style.boxShadow = '0 0 40px rgba(255, 0, 0, 0.8)';
     });
     
     fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         mouse.clicked = false;
+        // Reset visual feedback
+        fireButton.style.transform = 'scale(1)';
+        fireButton.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
+    });
+    
+    // Prevent context menu on long press
+    touchArea.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+    });
+    
+    fireButton.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
     });
 } else {
     canvas.addEventListener('mousedown', (e) => {
@@ -212,7 +241,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class
+// Vehicle class - FIXED for upgrade synchronization
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -317,7 +346,8 @@ class Vehicle {
         this.fireRate = stats.fireRate;
         this.maxCooldown = 60 / this.fireRate;
         
-        if (!this.health) {
+        // FIX: Ensure health doesn't go negative
+        if (!this.health || this.health < 0) {
             this.health = this.maxHealth;
         }
     }
@@ -445,15 +475,13 @@ class Vehicle {
                     this.turretAngle = Math.atan2(dy, dx);
                 }
             } else {
-                // Mobile touch controls
+                // FIXED Mobile touch controls
                 if (touch.active) {
-                    const dx = (touch.x - touch.startX) * 0.1;
-                    const dy = (touch.y - touch.startY) * 0.1;
+                    moveX = touch.moveX;
+                    moveY = touch.moveY;
                     
-                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                        moveX = dx;
-                        moveY = dy;
-                        this.angle = Math.atan2(dy, dx);
+                    if (Math.abs(moveX) > 0.1 || Math.abs(moveY) > 0.1) {
+                        this.angle = Math.atan2(moveY, moveX);
                         this.turretAngle = this.angle;
                         moved = true;
                     }
@@ -467,8 +495,6 @@ class Vehicle {
                     moveX /= length;
                     moveY /= length;
                     
-                    this.angle = Math.atan2(moveY, moveX);
-                    
                     this.x += moveX * this.speed;
                     this.y += moveY * this.speed;
                 }
@@ -478,7 +504,8 @@ class Vehicle {
                     x: this.x,
                     y: this.y,
                     angle: this.angle,
-                    turretAngle: this.turretAngle
+                    turretAngle: this.turretAngle,
+                    level: this.level // FIX: Send level to other players
                 });
             }
 
@@ -673,10 +700,10 @@ class Vehicle {
             }
         }
 
-        // Draw health bar
+        // FIX: Draw health bar with clamping to prevent negative values
         const barWidth = 50;
         const barHeight = 5;
-        const healthPercent = this.health / this.maxHealth;
+        const healthPercent = Math.max(0, this.health / this.maxHealth); // FIX: Clamp to 0
         
         ctx.fillStyle = 'red';
         ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth, barHeight);
@@ -911,7 +938,7 @@ class Explosion {
     }
 }
 
-// Socket events
+// Socket events - FIXED for upgrade synchronization
 socket.on('connect', () => {
     playerId = socket.id;
     console.log('Connected to server with ID:', playerId);
@@ -941,6 +968,7 @@ socket.on('game-state', (gameState) => {
                 killsDisplay.textContent = player.kills;
                 scoreDisplay.textContent = player.score;
                 levelDisplay.textContent = player.level;
+                vehicleNameDisplay.textContent = player.displayName;
                 
                 // Update vehicle stats if level changed
                 if (oldLevel !== player.level) {
@@ -950,25 +978,41 @@ socket.on('game-state', (gameState) => {
             }
             return player;
         }
-        const vehicle = new Vehicle(
-            playerData.x, 
-            playerData.y, 
-            false, 
-            playerData.id, 
-            playerData.vehicleType, 
-            playerData.color, 
-            playerData.name
-        );
+        
+        // FIX: For other players, check if we need to create new vehicle or update existing
+        let vehicle = players.find(p => p.id === playerData.id);
+        if (!vehicle) {
+            // Create new vehicle for new player
+            vehicle = new Vehicle(
+                playerData.x, 
+                playerData.y, 
+                false, 
+                playerData.id, 
+                playerData.vehicleType, 
+                playerData.color, 
+                playerData.name
+            );
+        }
+        
+        // Update vehicle properties
+        vehicle.x = playerData.x;
+        vehicle.y = playerData.y;
         vehicle.health = playerData.health;
         vehicle.kills = playerData.kills;
         vehicle.score = playerData.score;
         vehicle.experience = playerData.experience;
-        vehicle.level = playerData.level;
         vehicle.angle = playerData.angle;
         vehicle.turretAngle = playerData.turretAngle || playerData.angle;
-        vehicle.updateStats();
+        
+        // FIX: Update level and reload images if level changed
+        if (vehicle.level !== playerData.level) {
+            vehicle.level = playerData.level;
+            vehicle.updateStats();
+            vehicle.loadVehicleImages(); // Reload images for the new level
+        }
+        
         return vehicle;
-    });
+    }).filter(Boolean); // Remove any null entries
     
     bullets = gameState.bullets.map(bulletData => {
         const bullet = new Bullet(
@@ -995,9 +1039,10 @@ socket.on('leaderboard-update', (updatedLeaderboard) => {
 });
 
 socket.on('player-hit', (data) => {
+    // FIX: Prevent negative health
     if (data.playerId === playerId) {
         if (player) {
-            player.health = data.newHealth;
+            player.health = Math.max(0, data.newHealth); // FIX: Clamp to 0
             healthDisplay.textContent = Math.ceil(player.health);
         }
         explosions.push(new Explosion(data.x, data.y, 25));
@@ -1025,6 +1070,13 @@ socket.on('player-killed', (data) => {
         if (newLevel > player.level && player.levelUp()) {
             levelDisplay.textContent = player.level;
             vehicleNameDisplay.textContent = player.displayName;
+            
+            // FIX: Send level update to server so other players can see the upgrade
+            socket.emit('player-upgraded', {
+                id: playerId,
+                level: player.level,
+                vehicleType: player.vehicleType
+            });
         }
     }
     
@@ -1087,6 +1139,13 @@ socket.on('resource-collected', (data) => {
             if (newLevel > player.level && player.levelUp()) {
                 levelDisplay.textContent = player.level;
                 vehicleNameDisplay.textContent = player.displayName;
+                
+                // FIX: Send level update to server
+                socket.emit('player-upgraded', {
+                    id: playerId,
+                    level: player.level,
+                    vehicleType: player.vehicleType
+                });
             }
         }
     }
@@ -1099,6 +1158,16 @@ socket.on('resource-spawned', (resourceData) => {
         resourceData.type,
         resourceData.value
     ));
+});
+
+// NEW: Handle player upgrades from other players
+socket.on('player-upgraded', (data) => {
+    const upgradedPlayer = players.find(p => p.id === data.playerId);
+    if (upgradedPlayer) {
+        upgradedPlayer.level = data.level;
+        upgradedPlayer.updateStats();
+        upgradedPlayer.loadVehicleImages(); // Reload images for the new level
+    }
 });
 
 // Game functions
@@ -1120,7 +1189,8 @@ function initGame() {
         id: playerId,
         name: playerName,
         vehicleType: selectedVehicle,
-        color: player.color
+        color: player.color,
+        level: player.level
     });
     
     bullets = [];
@@ -1364,6 +1434,47 @@ function drawGrid() {
     }
 }
 
+// NEW: Draw experience progress bar
+function drawExperienceBar() {
+    if (!player) return;
+    
+    const barWidth = 200;
+    const barHeight = 10;
+    const x = canvas.width / 2 - barWidth / 2;
+    const y = 10;
+    
+    // Calculate experience progress
+    const currentLevelExp = player.experience % 300;
+    const expPercent = currentLevelExp / 300;
+    const nextLevel = player.level + 1;
+    
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(x, y, barWidth, barHeight);
+    
+    // Experience fill
+    const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
+    gradient.addColorStop(0, '#9C27B0');
+    gradient.addColorStop(1, '#E1BEE7');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, barWidth * expPercent, barHeight);
+    
+    // Border
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, barWidth, barHeight);
+    
+    // Text
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+        `Level ${player.level} | ${currentLevelExp}/300 XP | Next: Level ${nextLevel}`,
+        canvas.width / 2,
+        y + barHeight + 15
+    );
+}
+
 function drawHUD() {
     // Draw controls help
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -1381,6 +1492,7 @@ function drawHUD() {
     } else {
         ctx.fillText('Touch: Move', 20, canvas.height - 80);
         ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
+        ctx.fillText('Swipe: Aim & Move', 20, canvas.height - 40);
     }
     
     // Draw ability info if available
@@ -1388,6 +1500,9 @@ function drawHUD() {
         ctx.fillStyle = '#4CAF50';
         ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
+    
+    // Draw experience progress bar
+    drawExperienceBar();
 }
 
 // Game loop
