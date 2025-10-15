@@ -3,14 +3,6 @@ const ctx = canvas.getContext('2d');
 const minimap = document.getElementById('minimap');
 const minimapCtx = minimap.getContext('2d');
 
-// Disable start button until game config is received
-document.addEventListener('DOMContentLoaded', function() {
-    const startButton = document.getElementById('startButton');
-    if (startButton) {
-        startButton.disabled = true;
-    }
-});
-
 // UI Elements
 const startScreen = document.getElementById('startScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
@@ -25,6 +17,7 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const finalKillsDisplay = document.getElementById('finalKills');
 const survivalTimeDisplay = document.getElementById('survivalTime');
 
+// Default vehicle types (fallback if server config doesn't arrive)
 window.vehicleTypes = {
     tank: { health: 150, speed: 2, damage: 35, size: 45, color: '#4CAF50' },
     jeep: { health: 100, speed: 4, damage: 20, size: 35, color: '#FF9800' },
@@ -186,20 +179,6 @@ function handleShootingJoystick(e) {
     touch.shooting.angle = Math.atan2(deltaY, deltaX);
 }
 
-function handleShootingJoystick(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const rect = shootingJoystick.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const deltaX = touch.clientX - centerX;
-    const deltaY = touch.clientY - centerY;
-    
-    touch.shooting.active = true;
-    touch.shooting.angle = Math.atan2(deltaY, deltaX);
-}
-
 // Vehicle selection
 vehicleOptions.forEach(option => {
     option.addEventListener('click', () => {
@@ -244,6 +223,7 @@ class Vehicle {
         this.experience = 0;
         this.level = 1;
     }
+
     update() {
         if (this.isPlayer) {
             let moved = false;
@@ -252,33 +232,47 @@ class Vehicle {
             // Keyboard controls
             if (keys['w'] || keys['arrowup']) {
                 moveY -= 1;
+                moved = true;
             }
             if (keys['s'] || keys['arrowdown']) {
                 moveY += 1;
+                moved = true;
             }
             if (keys['a'] || keys['arrowleft']) {
                 moveX -= 1;
+                moved = true;
             }
             if (keys['d'] || keys['arrowright']) {
                 moveX += 1;
+                moved = true;
             }
 
             // Mobile controls
             if (touch.movement.active) {
                 moveX += touch.movement.x;
                 moveY += touch.movement.y;
+                moved = true;
             }
 
-            // Normalize movement vector
-            const length = Math.sqrt(moveX * moveX + moveY * moveY);
-            if (length > 0) {
-                moveX /= length;
-                moveY /= length;
-                
-                this.x += moveX * this.speed;
-                this.y += moveY * this.speed;
-                this.angle = Math.atan2(moveY, moveX);
-                moved = true;
+            // Normalize movement vector and apply movement
+            if (moved) {
+                const length = Math.sqrt(moveX * moveX + moveY * moveY);
+                if (length > 0) {
+                    moveX /= length;
+                    moveY /= length;
+                    
+                    this.x += moveX * this.speed;
+                    this.y += moveY * this.speed;
+                    this.angle = Math.atan2(moveY, moveX);
+                }
+
+                // Send update to server
+                socket.emit('player-update', {
+                    id: this.id,
+                    x: this.x,
+                    y: this.y,
+                    angle: this.angle
+                });
             }
 
             // Aiming
@@ -295,16 +289,6 @@ class Vehicle {
                 this.shoot();
                 this.cooldown = this.maxCooldown;
                 mouse.clicked = false;
-            }
-
-            // Send update to server
-            if (moved) {
-                socket.emit('player-update', {
-                    id: this.id,
-                    x: this.x,
-                    y: this.y,
-                    angle: this.angle
-                });
             }
         }
 
@@ -618,6 +602,14 @@ socket.on('game-config', (config) => {
     document.getElementById('startButton').disabled = false;
 });
 
+// If no config received after 5 seconds, enable button anyway
+setTimeout(() => {
+    if (document.getElementById('startButton').disabled) {
+        console.warn('Server config not received, using defaults');
+        document.getElementById('startButton').disabled = false;
+    }
+}, 5000);
+
 socket.on('game-state', (gameState) => {
     if (!gameRunning) return;
     
@@ -639,7 +631,7 @@ socket.on('game-state', (gameState) => {
             }
             return player;
         }
-        return new Vehicle(
+        const vehicle = new Vehicle(
             playerData.x, 
             playerData.y, 
             false, 
@@ -648,6 +640,12 @@ socket.on('game-state', (gameState) => {
             playerData.color, 
             playerData.name
         );
+        vehicle.health = playerData.health;
+        vehicle.kills = playerData.kills;
+        vehicle.score = playerData.score;
+        vehicle.experience = playerData.experience;
+        vehicle.level = playerData.level;
+        return vehicle;
     });
     
     // Update bullets
@@ -704,7 +702,6 @@ socket.on('player-killed', (data) => {
         if (newLevel > player.level) {
             player.level = newLevel;
             levelDisplay.textContent = player.level;
-            // You could add level-up effects here
         }
         
         socket.emit('score-update', { 
@@ -1004,6 +1001,3 @@ window.addEventListener('beforeunload', () => {
         socket.emit('leave-game', playerId);
     }
 });
-
-// Auto-select first vehicle
-vehicleOptions[0].classList.add('selected');
