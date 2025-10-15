@@ -12,24 +12,17 @@ const healthDisplay = document.getElementById('health');
 const scoreDisplay = document.getElementById('score');
 const killsDisplay = document.getElementById('kills');
 const levelDisplay = document.getElementById('level');
+const vehicleNameDisplay = document.getElementById('vehicleName');
 const leaderboardEntries = document.getElementById('leaderboard-entries');
 const finalScoreDisplay = document.getElementById('finalScore');
 const finalKillsDisplay = document.getElementById('finalKills');
+const finalLevelDisplay = document.getElementById('finalLevel');
 const survivalTimeDisplay = document.getElementById('survivalTime');
-
-// Default vehicle types (fallback if server config doesn't arrive)
-window.vehicleTypes = {
-    tank: { health: 150, speed: 2, damage: 35, size: 45, color: '#4CAF50' },
-    jeep: { health: 100, speed: 4, damage: 20, size: 35, color: '#FF9800' },
-    apc: { health: 200, speed: 1.5, damage: 25, size: 50, color: '#795548' },
-    artillery: { health: 120, speed: 1, damage: 50, size: 40, color: '#607D8B' }
-};
 
 // Mobile controls
 const mobileControls = document.getElementById('mobileControls');
-const movementJoystick = document.getElementById('movementJoystick');
-const shootingJoystick = document.getElementById('shootingJoystick');
-const shootButton = document.getElementById('shootButton');
+const touchArea = document.getElementById('touchArea');
+const fireButton = document.getElementById('fireButton');
 
 // Vehicle selection
 const vehicleOptions = document.querySelectorAll('.vehicle-option');
@@ -53,11 +46,6 @@ socket.on('connect_error', (error) => {
     alert('Failed to connect to game server. Please refresh and try again.');
 });
 
-socket.on('connect_timeout', () => {
-    console.error('Connection timeout');
-    alert('Connection to game server timed out. Please refresh and try again.');
-});
-
 // Game variables
 let gameRunning = false;
 let player = null;
@@ -73,19 +61,23 @@ let leaderboard = [];
 let gameTime = 600;
 let camera = { x: 0, y: 0 };
 let mapSize = 3000;
+let vehicleSystem = {};
 
-// Input handling
+// Input handling - Simplified for mobile
 const keys = {};
 const mouse = { x: 0, y: 0, clicked: false };
 const touch = {
-    movement: { x: 0, y: 0, active: false },
-    shooting: { x: 0, y: 0, active: false, angle: 0 }
+    active: false,
+    x: 0,
+    y: 0,
+    startX: 0,
+    startY: 0
 };
 
 // Detect mobile device
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// Event listeners
+// Event listeners for desktop
 document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
 });
@@ -106,77 +98,58 @@ canvas.addEventListener('mousedown', (e) => {
     }
 });
 
-// Touch events for mobile
+// Simplified touch events for mobile :cite[6]
 if (isMobile) {
-    mobileControls.style.display = 'flex';
+    mobileControls.style.display = 'block';
     
-    // Movement joystick
-    movementJoystick.addEventListener('touchstart', handleJoystickStart);
-    movementJoystick.addEventListener('touchmove', handleMovementJoystick);
-    movementJoystick.addEventListener('touchend', handleJoystickEnd);
+    touchArea.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        touch.active = true;
+        touch.startX = touch.clientX - rect.left;
+        touch.startY = touch.clientY - rect.top;
+        touch.x = touch.startX;
+        touch.y = touch.startY;
+    });
     
-    // Shooting joystick
-    shootingJoystick.addEventListener('touchstart', handleJoystickStart);
-    shootingJoystick.addEventListener('touchmove', handleShootingJoystick);
-    shootingJoystick.addEventListener('touchend', handleJoystickEnd);
+    touchArea.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!touch.active) return;
+        
+        const touchEvent = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        touch.x = touchEvent.clientX - rect.left;
+        touch.y = touchEvent.clientY - rect.top;
+    });
     
-    shootButton.addEventListener('touchstart', (e) => {
+    touchArea.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touch.active = false;
+    });
+    
+    fireButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         mouse.clicked = true;
     });
     
-    shootButton.addEventListener('touchend', (e) => {
+    fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         mouse.clicked = false;
     });
-}
-
-function handleJoystickStart(e) {
-    e.preventDefault();
-}
-
-function handleJoystickEnd(e) {
-    e.preventDefault();
-    if (e.target === movementJoystick) {
-        touch.movement.active = false;
-        touch.movement.x = 0;
-        touch.movement.y = 0;
-    } else {
-        touch.shooting.active = false;
-        touch.shooting.x = 0;
-        touch.shooting.y = 0;
-    }
-}
-
-function handleMovementJoystick(e) {
-    e.preventDefault();
-    const touchEvent = e.touches[0];
-    const rect = movementJoystick.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+} else {
+    // Desktop mouse controls
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0) {
+            mouse.clicked = true;
+        }
+    });
     
-    const deltaX = touchEvent.clientX - centerX;
-    const deltaY = touchEvent.clientY - centerY;
-    const distance = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), rect.width / 2);
-    const angle = Math.atan2(deltaY, deltaX);
-    
-    touch.movement.active = true;
-    touch.movement.x = Math.cos(angle) * (distance / (rect.width / 2));
-    touch.movement.y = Math.sin(angle) * (distance / (rect.height / 2));
-}
-
-function handleShootingJoystick(e) {
-    e.preventDefault();
-    const touchEvent = e.touches[0];
-    const rect = shootingJoystick.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const deltaX = touchEvent.clientX - centerX;
-    const deltaY = touchEvent.clientY - centerY;
-    
-    touch.shooting.active = true;
-    touch.shooting.angle = Math.atan2(deltaY, deltaX);
+    canvas.addEventListener('mouseup', (e) => {
+        if (e.button === 0) {
+            mouse.clicked = false;
+        }
+    });
 }
 
 // Vehicle selection
@@ -188,32 +161,19 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Classes
+// Vehicle class with image support
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
         this.y = y;
         this.vehicleType = vehicleType;
+        this.level = 1;
         
-        // Use default stats if vehicleTypes hasn't been received yet
-        const defaultStats = {
-            tank: { health: 150, speed: 2, damage: 35, size: 45, color: '#4CAF50' },
-            jeep: { health: 100, speed: 4, damage: 20, size: 35, color: '#FF9800' },
-            apc: { health: 200, speed: 1.5, damage: 25, size: 50, color: '#795548' },
-            artillery: { health: 120, speed: 1, damage: 50, size: 40, color: '#607D8B' }
-        };
+        this.updateStats();
         
-        const stats = (window.vehicleTypes && window.vehicleTypes[vehicleType]) || defaultStats[vehicleType] || defaultStats.tank;
-        
-        this.width = stats.size;
-        this.height = stats.size;
         this.angle = 0;
-        this.speed = stats.speed;
-        this.health = stats.health;
-        this.maxHealth = stats.health;
-        this.damage = stats.damage;
         this.isPlayer = isPlayer;
-        this.color = color || stats.color;
+        this.color = color || '#4CAF50';
         this.cooldown = 0;
         this.maxCooldown = vehicleType === 'artillery' ? 60 : 30;
         this.id = id;
@@ -221,7 +181,60 @@ class Vehicle {
         this.kills = 0;
         this.score = 0;
         this.experience = 0;
-        this.level = 1;
+        
+        // Load vehicle image
+        this.image = new Image();
+        this.image.src = `assets/${vehicleType}.png`;
+        this.imageLoaded = false;
+        this.image.onload = () => {
+            this.imageLoaded = true;
+        };
+    }
+    
+    updateStats() {
+        const vehicleData = vehicleSystem[this.vehicleType];
+        if (!vehicleData) return;
+        
+        let stats;
+        if (this.level > 1 && vehicleData.upgrades[this.level]) {
+            stats = vehicleData.upgrades[this.level];
+            this.displayName = stats.name;
+        } else {
+            stats = vehicleData.base;
+            this.displayName = this.getBaseVehicleName();
+        }
+        
+        this.width = stats.size;
+        this.height = stats.size;
+        this.speed = stats.speed;
+        this.maxHealth = stats.health;
+        this.damage = stats.damage;
+        
+        if (!this.health) {
+            this.health = this.maxHealth;
+        }
+    }
+    
+    getBaseVehicleName() {
+        const names = {
+            tank: 'Main Battle Tank',
+            jeep: 'Combat Jeep', 
+            apc: 'Armored APC',
+            artillery: 'Field Artillery'
+        };
+        return names[this.vehicleType] || this.vehicleType;
+    }
+    
+    levelUp() {
+        if (this.level < 3) {
+            this.level++;
+            const oldHealth = this.health;
+            const healthPercent = oldHealth / this.maxHealth;
+            this.updateStats();
+            this.health = this.maxHealth * healthPercent;
+            return true;
+        }
+        return false;
     }
 
     update() {
@@ -229,32 +242,47 @@ class Vehicle {
             let moved = false;
             let moveX = 0, moveY = 0;
 
-            // Keyboard controls
-            if (keys['w'] || keys['arrowup']) {
-                moveY -= 1;
-                moved = true;
-            }
-            if (keys['s'] || keys['arrowdown']) {
-                moveY += 1;
-                moved = true;
-            }
-            if (keys['a'] || keys['arrowleft']) {
-                moveX -= 1;
-                moved = true;
-            }
-            if (keys['d'] || keys['arrowright']) {
-                moveX += 1;
-                moved = true;
+            if (!isMobile) {
+                // Desktop controls
+                if (keys['w'] || keys['arrowup']) {
+                    moveY -= 1;
+                    moved = true;
+                }
+                if (keys['s'] || keys['arrowdown']) {
+                    moveY += 1;
+                    moved = true;
+                }
+                if (keys['a'] || keys['arrowleft']) {
+                    moveX -= 1;
+                    moved = true;
+                }
+                if (keys['d'] || keys['arrowright']) {
+                    moveX += 1;
+                    moved = true;
+                }
+
+                // Mouse aiming
+                if (mouse.x && mouse.y) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    this.angle = Math.atan2(dy, dx);
+                }
+            } else {
+                // Mobile touch controls
+                if (touch.active) {
+                    const dx = (touch.x - touch.startX) * 0.1;
+                    const dy = (touch.y - touch.startY) * 0.1;
+                    
+                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                        moveX = dx;
+                        moveY = dy;
+                        this.angle = Math.atan2(dy, dx);
+                        moved = true;
+                    }
+                }
             }
 
-            // Mobile controls
-            if (touch.movement.active) {
-                moveX += touch.movement.x;
-                moveY += touch.movement.y;
-                moved = true;
-            }
-
-            // Normalize movement vector and apply movement
+            // Apply movement
             if (moved) {
                 const length = Math.sqrt(moveX * moveX + moveY * moveY);
                 if (length > 0) {
@@ -263,10 +291,8 @@ class Vehicle {
                     
                     this.x += moveX * this.speed;
                     this.y += moveY * this.speed;
-                    this.angle = Math.atan2(moveY, moveX);
                 }
 
-                // Send update to server
                 socket.emit('player-update', {
                     id: this.id,
                     x: this.x,
@@ -275,17 +301,8 @@ class Vehicle {
                 });
             }
 
-            // Aiming
-            if (touch.shooting.active) {
-                this.angle = touch.shooting.angle;
-            } else if (mouse.x && mouse.y) {
-                const dx = mouse.x - this.x;
-                const dy = mouse.y - this.y;
-                this.angle = Math.atan2(dy, dx);
-            }
-
             // Shooting
-            if ((mouse.clicked || touch.shooting.active) && this.cooldown <= 0) {
+            if (mouse.clicked && this.cooldown <= 0) {
                 this.shoot();
                 this.cooldown = this.maxCooldown;
                 mouse.clicked = false;
@@ -303,8 +320,8 @@ class Vehicle {
     }
 
     shoot() {
-        const bulletX = this.x + Math.cos(this.angle) * (this.width / 2 + 10);
-        const bulletY = this.y + Math.sin(this.angle) * (this.height / 2 + 10);
+        const bulletX = this.x + Math.cos(this.angle) * (this.width / 2 + 15);
+        const bulletY = this.y + Math.sin(this.angle) * (this.height / 2 + 15);
         
         socket.emit('bullet-fired', {
             x: bulletX,
@@ -315,126 +332,68 @@ class Vehicle {
     }
 
     draw() {
+        const screenX = this.x - camera.x;
+        const screenY = this.y - camera.y;
+
         ctx.save();
-        ctx.translate(this.x - camera.x, this.y - camera.y);
+        ctx.translate(screenX, screenY);
         ctx.rotate(this.angle);
         
-        // Draw vehicle body based on type
-        switch (this.vehicleType) {
-            case 'tank':
-                this.drawTank();
-                break;
-            case 'jeep':
-                this.drawJeep();
-                break;
-            case 'apc':
-                this.drawAPC();
-                break;
-            case 'artillery':
-                this.drawArtillery();
-                break;
+        // Draw vehicle image or fallback rectangle
+        if (this.imageLoaded) {
+            ctx.drawImage(this.image, -this.width/2, -this.height/2, this.width, this.height);
+        } else {
+            // Fallback colored rectangle
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(-8, -this.height/2, 16, this.height);
         }
         
         ctx.restore();
 
-        // Draw name and health bar
-        this.drawUI();
+        // Draw UI elements
+        this.drawUI(screenX, screenY);
     }
 
-    drawTank() {
-        // Tank body
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-        
-        // Tank turret
-        ctx.fillStyle = '#333';
-        ctx.fillRect(-8, -20, 16, 40);
-        
-        // Tank barrel
-        ctx.fillStyle = '#666';
-        ctx.fillRect(0, -5, 30, 10);
-    }
-
-    drawJeep() {
-        // Jeep body
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-        
-        // Jeep details
-        ctx.fillStyle = '#333';
-        ctx.fillRect(-this.width/2, -this.height/2, this.width, 10); // Roof
-        ctx.fillRect(-this.width/2 + 5, this.height/2 - 15, this.width - 10, 5); // Bumper
-    }
-
-    drawAPC() {
-        // APC body
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-        
-        // APC turret
-        ctx.fillStyle = '#555';
-        ctx.fillRect(-10, -15, 20, 30);
-        
-        // APC details
-        ctx.fillStyle = '#333';
-        ctx.fillRect(-this.width/2 + 5, -this.height/2 + 5, this.width - 10, 8); // Armor
-    }
-
-    drawArtillery() {
-        // Artillery body
-        ctx.fillStyle = this.color;
-        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-        
-        // Artillery barrel
-        ctx.fillStyle = '#666';
-        ctx.fillRect(0, -3, 40, 6);
-        
-        // Artillery base
-        ctx.fillStyle = '#555';
-        ctx.fillRect(-15, 5, 30, 10);
-    }
-
-    drawUI() {
-        const screenX = this.x - camera.x;
-        const screenY = this.y - camera.y;
-
-        // Draw name
+    drawUI(screenX, screenY) {
+        // Draw name and level
         if (this.name) {
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(this.name, screenX, screenY - this.height/2 - 20);
+            ctx.fillText(this.name, screenX, screenY - this.height/2 - 25);
+            
+            // Draw level badge
+            if (this.level > 1) {
+                ctx.fillStyle = '#ffd700';
+                ctx.font = '10px Arial';
+                ctx.fillText(`Lvl ${this.level}`, screenX, screenY - this.height/2 - 10);
+            }
         }
 
-        // Draw health bar for enemies or if player is damaged
+        // Draw health bar
         if (!this.isPlayer || this.health < this.maxHealth) {
-            const barWidth = 40;
-            const barHeight = 4;
+            const barWidth = 50;
+            const barHeight = 5;
             const healthPercent = this.health / this.maxHealth;
             
             ctx.fillStyle = 'red';
-            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 10, barWidth, barHeight);
-            ctx.fillStyle = 'green';
-            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 10, barWidth * healthPercent, barHeight);
-        }
-
-        // Draw level for high-level players
-        if (this.level > 1) {
-            ctx.fillStyle = '#ffd700';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`Lvl ${this.level}`, screenX, screenY - this.height/2 - 30);
+            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth, barHeight);
+            ctx.fillStyle = healthPercent > 0.3 ? 'green' : 'yellow';
+            ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth * healthPercent, barHeight);
         }
     }
 }
 
+// Bullet class
 class Bullet {
     constructor(x, y, angle, ownerId, damage) {
         this.x = x;
         this.y = y;
         this.angle = angle;
         this.speed = 8;
-        this.size = 4;
+        this.size = 6;
         this.ownerId = ownerId;
         this.damage = damage;
     }
@@ -443,31 +402,39 @@ class Bullet {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
         
-        ctx.fillStyle = '#FFEB3B';
+        // Bullet glow
+        ctx.fillStyle = 'rgba(255, 235, 59, 0.8)';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
         ctx.fill();
         
-        // Bullet trail
-        ctx.strokeStyle = 'rgba(255, 100, 0, 0.5)';
-        ctx.lineWidth = 2;
+        // Bullet core
+        ctx.fillStyle = '#FF5722';
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, this.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Trail effect
+        ctx.strokeStyle = 'rgba(255, 100, 0, 0.4)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(screenX, screenY);
         ctx.lineTo(
-            screenX - Math.cos(this.angle) * 10,
-            screenY - Math.sin(this.angle) * 10
+            screenX - Math.cos(this.angle) * 15,
+            screenY - Math.sin(this.angle) * 15
         );
         ctx.stroke();
     }
 }
 
+// Resource and Explosion classes remain similar but enhanced
 class Resource {
     constructor(x, y, type, value) {
         this.x = x;
         this.y = y;
         this.type = type;
         this.value = value;
-        this.size = 15;
+        this.size = 20;
         this.pulse = 0;
     }
 
@@ -478,33 +445,36 @@ class Resource {
     draw() {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
-        const pulseSize = this.size + Math.sin(this.pulse) * 3;
+        const pulseSize = this.size + Math.sin(this.pulse) * 5;
 
+        ctx.save();
+        ctx.globalAlpha = 0.8 + Math.sin(this.pulse) * 0.2;
+        
         if (this.type === 'health') {
-            // Health pack
+            // Health pack with cross symbol
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
-            ctx.moveTo(screenX, screenY - pulseSize);
-            ctx.lineTo(screenX + pulseSize, screenY);
-            ctx.lineTo(screenX, screenY + pulseSize);
-            ctx.lineTo(screenX - pulseSize, screenY);
-            ctx.closePath();
+            ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('+', screenX, screenY + 4);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+', screenX, screenY);
         } else {
             // Ammo crate
             ctx.fillStyle = '#FF9800';
             ctx.fillRect(screenX - pulseSize/2, screenY - pulseSize/2, pulseSize, pulseSize);
             
             ctx.fillStyle = 'white';
-            ctx.font = '10px Arial';
+            ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('A', screenX, screenY + 3);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('A', screenX, screenY);
         }
+        
+        ctx.restore();
     }
 }
 
@@ -513,7 +483,7 @@ class Explosion {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.maxSize = size * 3;
+        this.maxSize = size * 4;
         this.currentSize = size;
         this.growing = true;
         this.particles = [];
@@ -521,13 +491,13 @@ class Explosion {
     }
 
     createParticles() {
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 20; i++) {
             this.particles.push({
                 x: this.x,
                 y: this.y,
                 angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 5 + 2,
-                size: Math.random() * 3 + 1,
+                speed: Math.random() * 8 + 3,
+                size: Math.random() * 4 + 2,
                 life: 1
             });
         }
@@ -535,20 +505,19 @@ class Explosion {
 
     update() {
         if (this.growing) {
-            this.currentSize += 2;
+            this.currentSize += 3;
             if (this.currentSize >= this.maxSize) {
                 this.growing = false;
             }
         } else {
-            this.currentSize -= 1;
+            this.currentSize -= 2;
         }
 
-        // Update particles
         this.particles.forEach(particle => {
             particle.x += Math.cos(particle.angle) * particle.speed;
             particle.y += Math.sin(particle.angle) * particle.speed;
-            particle.life -= 0.02;
-            particle.size -= 0.1;
+            particle.life -= 0.03;
+            particle.size -= 0.15;
         });
 
         this.particles = this.particles.filter(p => p.life > 0 && p.size > 0);
@@ -558,13 +527,13 @@ class Explosion {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Main explosion
+        // Main explosion with gradient
         const gradient = ctx.createRadialGradient(
             screenX, screenY, 0,
             screenX, screenY, this.currentSize
         );
-        gradient.addColorStop(0, 'rgba(255, 100, 0, 0.8)');
-        gradient.addColorStop(0.7, 'rgba(255, 50, 0, 0.4)');
+        gradient.addColorStop(0, 'rgba(255, 150, 0, 0.9)');
+        gradient.addColorStop(0.7, 'rgba(255, 50, 0, 0.5)');
         gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
@@ -577,10 +546,13 @@ class Explosion {
             const particleX = particle.x - camera.x;
             const particleY = particle.y - camera.y;
             
-            ctx.fillStyle = `rgba(255, ${Math.random() * 100 + 155}, 0, ${particle.life})`;
+            ctx.save();
+            ctx.globalAlpha = particle.life;
+            ctx.fillStyle = `rgb(255, ${Math.random() * 100 + 100}, 0)`;
             ctx.beginPath();
             ctx.arc(particleX, particleY, particle.size, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
         });
     }
 
@@ -596,38 +568,35 @@ socket.on('connect', () => {
 });
 
 socket.on('game-config', (config) => {
-    window.vehicleTypes = { ...window.vehicleTypes, ...config.vehicleTypes };
+    vehicleSystem = config.vehicleSystem;
     mapSize = config.mapSize;
-
     document.getElementById('startButton').disabled = false;
 });
-
-// If no config received after 5 seconds, enable button anyway
-setTimeout(() => {
-    if (document.getElementById('startButton').disabled) {
-        console.warn('Server config not received, using defaults');
-        document.getElementById('startButton').disabled = false;
-    }
-}, 5000);
 
 socket.on('game-state', (gameState) => {
     if (!gameRunning) return;
     
-    // Update players
     players = Object.values(gameState.players).map(playerData => {
         if (playerData.id === playerId) {
             if (player) {
-                // Update player stats from server
+                const oldLevel = player.level;
                 player.health = playerData.health;
                 player.kills = playerData.kills;
                 player.score = playerData.score;
                 player.experience = playerData.experience;
                 player.level = playerData.level;
                 
-                healthDisplay.textContent = player.health;
+                // Update UI
+                healthDisplay.textContent = Math.ceil(player.health);
                 killsDisplay.textContent = player.kills;
                 scoreDisplay.textContent = player.score;
                 levelDisplay.textContent = player.level;
+                
+                // Update vehicle stats if level changed
+                if (oldLevel !== player.level) {
+                    player.updateStats();
+                    vehicleNameDisplay.textContent = player.displayName;
+                }
             }
             return player;
         }
@@ -645,10 +614,10 @@ socket.on('game-state', (gameState) => {
         vehicle.score = playerData.score;
         vehicle.experience = playerData.experience;
         vehicle.level = playerData.level;
+        vehicle.updateStats();
         return vehicle;
     });
     
-    // Update bullets
     bullets = gameState.bullets.map(bulletData => {
         return new Bullet(
             bulletData.x, 
@@ -659,7 +628,6 @@ socket.on('game-state', (gameState) => {
         );
     });
     
-    // Update obstacles and resources
     obstacles = gameState.obstacles;
     resources = gameState.resources.map(resourceData => 
         new Resource(resourceData.x, resourceData.y, resourceData.type, resourceData.value)
@@ -676,8 +644,8 @@ socket.on('leaderboard-update', (updatedLeaderboard) => {
 socket.on('player-hit', (data) => {
     if (data.playerId === playerId) {
         player.health = data.newHealth;
-        healthDisplay.textContent = player.health;
-        explosions.push(new Explosion(data.x, data.y, 20));
+        healthDisplay.textContent = Math.ceil(player.health);
+        explosions.push(new Explosion(data.x, data.y, 25));
         
         if (player.health <= 0) {
             setTimeout(() => {
@@ -685,7 +653,7 @@ socket.on('player-hit', (data) => {
             }, 1000);
         }
     } else {
-        explosions.push(new Explosion(data.x, data.y, 15));
+        explosions.push(new Explosion(data.x, data.y, 20));
     }
 });
 
@@ -698,32 +666,23 @@ socket.on('player-killed', (data) => {
         scoreDisplay.textContent = player.score;
         
         // Check for level up
-        const newLevel = Math.floor(player.experience / 100) + 1;
-        if (newLevel > player.level) {
-            player.level = newLevel;
+        const newLevel = Math.floor(player.experience / 300) + 1;
+        if (newLevel > player.level && player.levelUp()) {
             levelDisplay.textContent = player.level;
+            vehicleNameDisplay.textContent = player.displayName;
+            
+            // Level up effect
+            for (let i = 0; i < 10; i++) {
+                explosions.push(new Explosion(player.x + Math.random() * 50 - 25, player.y + Math.random() * 50 - 25, 15));
+            }
         }
-        
-        socket.emit('score-update', { 
-            id: playerId, 
-            score: player.score,
-            kills: player.kills,
-            experience: player.experience,
-            level: player.level
-        });
     }
     
     explosions.push(new Explosion(
         players.find(p => p.id === data.victimId)?.x || 0,
         players.find(p => p.id === data.victimId)?.y || 0,
-        30
+        35
     ));
-});
-
-socket.on('game-full', () => {
-    alert('Game is full! Please try again later.');
-    startScreen.style.display = 'flex';
-    gameRunning = false;
 });
 
 // Game functions
@@ -751,12 +710,12 @@ function initGame() {
     bullets = [];
     explosions = [];
     
-    healthDisplay.textContent = player.health;
+    healthDisplay.textContent = Math.ceil(player.health);
     killsDisplay.textContent = player.kills;
     scoreDisplay.textContent = player.score;
     levelDisplay.textContent = player.level;
+    vehicleNameDisplay.textContent = player.displayName;
     
-    // Center camera on player
     camera.x = player.x - canvas.width / 2;
     camera.y = player.y - canvas.height / 2;
 }
@@ -782,6 +741,7 @@ function updateLeaderboard() {
             <div>
                 <span class="leaderboard-rank">${i + 1}.</span>
                 <span>${entry.name}</span>
+                ${entry.level > 1 ? `<span class="level-badge">Lvl ${entry.level}</span>` : ''}
             </div>
             <div>${entry.score}</div>
         `;
@@ -791,24 +751,20 @@ function updateLeaderboard() {
 
 function updateCamera() {
     if (player) {
-        // Smooth camera follow
         camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
         camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
         
-        // Keep camera within map bounds
         camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
         camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
     }
 }
 
 function drawMiniMap() {
-    // Clear minimap
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimap.width, minimap.height);
     
     const scale = minimap.width / mapSize;
     
-    // Draw obstacles
     minimapCtx.fillStyle = '#666';
     obstacles.forEach(obstacle => {
         minimapCtx.fillRect(
@@ -819,25 +775,34 @@ function drawMiniMap() {
         );
     });
     
-    // Draw resources
     resources.forEach(resource => {
         minimapCtx.fillStyle = resource.type === 'health' ? '#4CAF50' : '#FF9800';
         minimapCtx.beginPath();
-        minimapCtx.arc(resource.x * scale, resource.y * scale, 3, 0, Math.PI * 2);
+        minimapCtx.arc(resource.x * scale, resource.y * scale, 2, 0, Math.PI * 2);
         minimapCtx.fill();
     });
     
-    // Draw players
     players.forEach(p => {
-        minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : (p.vehicleType === 'tank' ? '#4CAF50' : 
-                           p.vehicleType === 'jeep' ? '#FF9800' : 
-                           p.vehicleType === 'apc' ? '#795548' : '#607D8B');
+        minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : 
+                              p.vehicleType === 'tank' ? '#4CAF50' : 
+                              p.vehicleType === 'jeep' ? '#FF9800' : 
+                              p.vehicleType === 'apc' ? '#795548' : '#607D8B';
         minimapCtx.beginPath();
         minimapCtx.arc(p.x * scale, p.y * scale, 3, 0, Math.PI * 2);
         minimapCtx.fill();
+        
+        // Draw direction indicator
+        minimapCtx.strokeStyle = 'white';
+        minimapCtx.lineWidth = 1;
+        minimapCtx.beginPath();
+        minimapCtx.moveTo(p.x * scale, p.y * scale);
+        minimapCtx.lineTo(
+            p.x * scale + Math.cos(p.angle) * 8,
+            p.y * scale + Math.sin(p.angle) * 8
+        );
+        minimapCtx.stroke();
     });
     
-    // Draw viewport rectangle
     minimapCtx.strokeStyle = '#ffd700';
     minimapCtx.lineWidth = 2;
     minimapCtx.strokeRect(
@@ -848,29 +813,11 @@ function drawMiniMap() {
     );
 }
 
-function checkResourceCollection() {
-    if (!player) return;
-    
-    resources.forEach((resource, index) => {
-        const dx = resource.x - player.x;
-        const dy = resource.y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < player.width + resource.size) {
-            socket.emit('collect-resource', {
-                playerId: player.id,
-                resource: resource
-            });
-            explosions.push(new Explosion(resource.x, resource.y, 10));
-            resources.splice(index, 1);
-        }
-    });
-}
-
 function showGameOver() {
     gameRunning = false;
     finalScoreDisplay.textContent = player.score;
     finalKillsDisplay.textContent = player.kills;
+    finalLevelDisplay.textContent = player.level;
     survivalTimeDisplay.textContent = Math.floor((600 - gameTime) / 60) + 'm ' + ((600 - gameTime) % 60) + 's';
     gameOverScreen.classList.remove('hidden');
 }
@@ -879,23 +826,19 @@ function showGameOver() {
 function gameLoop(timestamp) {
     if (!gameRunning) return;
     
-    // Update camera
     updateCamera();
     
-    // Clear canvas with gradient background
+    // Clear canvas with battlefield background
     ctx.fillStyle = '#2d5016';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw grid for perspective
     drawGrid();
     
-    // Update and draw resources
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
     
-    // Draw obstacles
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -910,7 +853,6 @@ function gameLoop(timestamp) {
                 obstacle.height
             );
             
-            // Add texture to obstacles
             ctx.strokeStyle = '#3e2723';
             ctx.lineWidth = 2;
             ctx.strokeRect(
@@ -922,7 +864,6 @@ function gameLoop(timestamp) {
         }
     });
     
-    // Update and draw players
     players.forEach(p => {
         if (p.isPlayer) {
             p.update();
@@ -930,10 +871,8 @@ function gameLoop(timestamp) {
         p.draw();
     });
     
-    // Draw bullets
     bullets.forEach(bullet => bullet.draw());
     
-    // Update and draw explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
@@ -944,10 +883,6 @@ function gameLoop(timestamp) {
         }
     }
     
-    // Check resource collection
-    checkResourceCollection();
-    
-    // Draw minimap
     drawMiniMap();
     
     requestAnimationFrame(gameLoop);
@@ -995,9 +930,19 @@ playAgainButton.addEventListener('click', () => {
     startScreen.style.display = 'flex';
 });
 
-// Handle window close
 window.addEventListener('beforeunload', () => {
     if (gameRunning) {
         socket.emit('leave-game', playerId);
     }
 });
+
+// Auto-select first vehicle
+vehicleOptions[0].classList.add('selected');
+
+// Enable start button after 3 seconds if no config received
+setTimeout(() => {
+    if (document.getElementById('startButton').disabled) {
+        console.warn('Server config not received, using defaults');
+        document.getElementById('startButton').disabled = false;
+    }
+}, 3000);
