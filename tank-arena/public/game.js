@@ -63,7 +63,7 @@ let camera = { x: 0, y: 0 };
 let mapSize = 4000;
 let startTime = Date.now();
 
-// Enhanced Vehicle System with 5 levels and more vehicles
+// Enhanced Vehicle System with 5 levels and 6 vehicles
 const vehicleSystem = {
     tank: {
         base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 50, fireRate: 1.0 },
@@ -212,7 +212,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with separate body and turret
+// Vehicle class
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -235,13 +235,6 @@ class Vehicle {
         this.specialAbilityCooldown = 0;
         this.specialAbilityActive = false;
         this.specialAbilityDuration = 0;
-        
-        // Load vehicle images
-        this.bodyImage = new Image();
-        this.turretImage = new Image();
-        this.bodyImageLoaded = false;
-        this.turretImageLoaded = false;
-        this.loadVehicleImages();
     }
     
     getDefaultColor() {
@@ -254,43 +247,6 @@ class Vehicle {
             mech: '#F44336'
         };
         return colors[this.vehicleType] || '#4CAF50';
-    }
-    
-    loadVehicleImages() {
-        const imagePath = this.getImagePath();
-        this.bodyImage.src = `assets/${imagePath}_body.png`;
-        this.turretImage.src = `assets/${imagePath}_turret.png`;
-        
-        this.bodyImage.onload = () => {
-            this.bodyImageLoaded = true;
-        };
-        this.turretImage.onload = () => {
-            this.turretImageLoaded = true;
-        };
-        
-        this.bodyImage.onerror = () => {
-            this.bodyImageLoaded = false;
-            console.warn(`Failed to load body image: assets/${imagePath}_body.png`);
-        };
-        this.turretImage.onerror = () => {
-            this.turretImageLoaded = false;
-            console.warn(`Failed to load turret image: assets/${imagePath}_turret.png`);
-        };
-    }
-    
-    getImagePath() {
-        const baseTypes = {
-            tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
-            jeep: ['jeep_basic', 'jeep_combat', 'jeep_assault', 'jeep_raider', 'jeep_commando'],
-            apc: ['apc_basic', 'apc_heavy', 'apc_battle', 'apc_assault', 'apc_titan'],
-            artillery: ['artillery_basic', 'artillery_heavy', 'artillery_siege', 'artillery_mobile', 'artillery_super'],
-            helicopter: ['helicopter_basic', 'helicopter_attack', 'helicopter_gunship', 'helicopter_heavy', 'helicopter_elite'],
-            mech: ['mech_basic', 'mech_assault', 'mech_heavy', 'mech_battle', 'mech_titan']
-        };
-        
-        const typeArray = baseTypes[this.vehicleType] || baseTypes.tank;
-        const levelIndex = Math.min(this.level - 1, typeArray.length - 1);
-        return typeArray[levelIndex];
     }
     
     updateStats() {
@@ -312,7 +268,7 @@ class Vehicle {
         this.maxHealth = stats.health;
         this.damage = stats.damage;
         this.fireRate = stats.fireRate;
-        this.maxCooldown = 60 / this.fireRate; // Cooldown in frames
+        this.maxCooldown = 60 / this.fireRate;
         
         if (!this.health) {
             this.health = this.maxHealth;
@@ -326,7 +282,6 @@ class Vehicle {
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
-            this.loadVehicleImages();
             
             // Level up effect
             if (this.isPlayer) {
@@ -347,38 +302,30 @@ class Vehicle {
     activateSpecialAbility() {
         if (this.specialAbilityCooldown <= 0) {
             this.specialAbilityActive = true;
-            this.specialAbilityDuration = 180; // 3 seconds at 60fps
-            this.specialAbilityCooldown = 600; // 10 second cooldown
+            this.specialAbilityDuration = 180;
+            this.specialAbilityCooldown = 600;
             
-            // Ability effects based on vehicle type
             switch(this.vehicleType) {
                 case 'tank':
-                    // Temporary damage boost
                     this.damage *= 1.5;
                     break;
                 case 'jeep':
-                    // Speed boost
                     this.speed *= 1.5;
                     break;
                 case 'apc':
-                    // Temporary shield
                     this.tempShield = this.maxHealth * 0.5;
                     break;
                 case 'artillery':
-                    // Rapid fire
                     this.fireRate *= 2;
                     this.maxCooldown = 60 / this.fireRate;
                     break;
                 case 'helicopter':
-                    // Invisibility for short time
                     this.stealth = true;
                     break;
                 case 'mech':
-                    // Area damage
                     this.areaDamage = true;
                     break;
             }
-            
             return true;
         }
         return false;
@@ -387,7 +334,6 @@ class Vehicle {
     deactivateSpecialAbility() {
         this.specialAbilityActive = false;
         
-        // Reset temporary bonuses
         switch(this.vehicleType) {
             case 'tank':
                 this.damage = vehicleSystem[this.vehicleType].upgrades[this.level]?.damage || 
@@ -441,7 +387,7 @@ class Vehicle {
                 // Special ability (Space bar)
                 if (keys[' '] && this.specialAbilityCooldown <= 0 && !this.specialAbilityActive) {
                     this.activateSpecialAbility();
-                    keys[' '] = false; // Prevent holding
+                    keys[' '] = false;
                 }
 
                 // Mouse aiming
@@ -542,9 +488,8 @@ class Vehicle {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Skip drawing if stealth is active (for helicopters)
+        // Skip drawing if stealth is active
         if (this.stealth && this.isPlayer) {
-            // Only draw a faint outline
             ctx.save();
             ctx.globalAlpha = 0.3;
         }
@@ -555,31 +500,13 @@ class Vehicle {
         // Draw vehicle body
         ctx.save();
         ctx.rotate(this.angle);
-        if (this.bodyImageLoaded) {
-            ctx.drawImage(this.bodyImage, -this.width/2, -this.height/2, this.width, this.height);
-        } else {
-            // Fallback
-            ctx.fillStyle = this.color;
-            ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-            ctx.fillStyle = '#333';
-            ctx.fillRect(-this.width/4, -this.height/2, this.width/2, this.height/3);
-        }
+        this.drawVehicleBody();
         ctx.restore();
         
         // Draw turret
         ctx.save();
         ctx.rotate(this.turretAngle);
-        if (this.turretImageLoaded) {
-            const turretSize = this.width * 0.7;
-            ctx.drawImage(this.turretImage, -turretSize/2, -turretSize/2, turretSize, turretSize);
-        } else {
-            ctx.fillStyle = '#333';
-            ctx.fillRect(0, -3, this.width/2 + 10, 6);
-            ctx.fillStyle = '#555';
-            ctx.beginPath();
-            ctx.arc(0, 0, this.width/4, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        this.drawVehicleTurret();
         ctx.restore();
         
         ctx.restore();
@@ -593,7 +520,90 @@ class Vehicle {
         this.drawUI(screenX, screenY);
         
         if (this.stealth) {
-            ctx.restore(); // Restore alpha
+            ctx.restore();
+        }
+    }
+    
+    drawVehicleBody() {
+        ctx.fillStyle = this.color;
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-this.width/4, -this.height/2, this.width/2, this.height/3);
+                break;
+            case 'jeep':
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, 10);
+                break;
+            case 'apc':
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                ctx.fillStyle = '#555';
+                ctx.fillRect(-this.width/2 + 5, -this.height/2 + 5, this.width - 10, 8);
+                break;
+            case 'artillery':
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                ctx.fillStyle = '#555';
+                ctx.fillRect(-15, 5, 30, 10);
+                break;
+            case 'helicopter':
+                // Helicopter body (oval)
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width/2, this.height/3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Rotor
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-this.width/2, -this.height/2);
+                ctx.lineTo(this.width/2, -this.height/2);
+                ctx.stroke();
+                break;
+            case 'mech':
+                // Mech body
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                // Mech legs
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-this.width/4, this.height/2 - 5, this.width/8, 10);
+                ctx.fillRect(this.width/8, this.height/2 - 5, this.width/8, 10);
+                break;
+        }
+    }
+    
+    drawVehicleTurret() {
+        ctx.fillStyle = '#333';
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                ctx.fillRect(-8, -20, 16, 40);
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -5, 30, 10);
+                break;
+            case 'jeep':
+                ctx.fillRect(-5, -15, 10, 30);
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -3, 25, 6);
+                break;
+            case 'apc':
+                ctx.fillRect(-10, -15, 20, 30);
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -3, 20, 6);
+                break;
+            case 'artillery':
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -3, 40, 6);
+                break;
+            case 'helicopter':
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -2, 25, 4);
+                break;
+            case 'mech':
+                ctx.fillRect(-6, -25, 12, 50);
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, -4, 35, 8);
+                break;
         }
     }
     
@@ -603,7 +613,6 @@ class Vehicle {
         
         switch(this.vehicleType) {
             case 'tank':
-                // Damage boost aura
                 ctx.strokeStyle = '#FF4444';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
@@ -611,7 +620,6 @@ class Vehicle {
                 ctx.stroke();
                 break;
             case 'jeep':
-                // Speed lines
                 ctx.strokeStyle = '#44FF44';
                 for (let i = 0; i < 8; i++) {
                     const angle = (Math.PI * 2 / 8) * i;
@@ -625,7 +633,6 @@ class Vehicle {
                 }
                 break;
             case 'apc':
-                // Shield effect
                 ctx.strokeStyle = '#4444FF';
                 ctx.lineWidth = 4;
                 ctx.beginPath();
@@ -633,7 +640,6 @@ class Vehicle {
                 ctx.stroke();
                 break;
             case 'artillery':
-                // Rapid fire particles
                 for (let i = 0; i < 5; i++) {
                     const angle = Math.random() * Math.PI * 2;
                     const dist = Math.random() * this.width;
@@ -648,7 +654,6 @@ class Vehicle {
                 }
                 break;
             case 'helicopter':
-                // Stealth shimmer
                 ctx.strokeStyle = '#AAAAAA';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
@@ -658,7 +663,6 @@ class Vehicle {
                 ctx.setLineDash([]);
                 break;
             case 'mech':
-                // Area damage aura
                 const gradient = ctx.createRadialGradient(
                     screenX, screenY, this.width * 0.5,
                     screenX, screenY, this.width * 1.5
@@ -717,7 +721,7 @@ class Vehicle {
     }
 }
 
-// Enhanced Bullet class
+// Bullet class
 class Bullet {
     constructor(x, y, angle, ownerId, damage, bulletType = 'normal') {
         this.x = x;
@@ -733,13 +737,11 @@ class Bullet {
     }
     
     update() {
-        // Store position for trail
         this.trail.push({x: this.x, y: this.y});
         if (this.trail.length > this.maxTrail) {
             this.trail.shift();
         }
         
-        // Move bullet
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
     }
@@ -775,7 +777,7 @@ class Bullet {
     }
 }
 
-// Enhanced Resource class
+// Resource class
 class Resource {
     constructor(x, y, type, value) {
         this.x = x;
@@ -802,7 +804,6 @@ class Resource {
         ctx.globalAlpha = 0.8 + Math.sin(this.pulse) * 0.2;
         
         if (this.type === 'health') {
-            // Health pack
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
             ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
@@ -814,7 +815,6 @@ class Resource {
             ctx.textBaseline = 'middle';
             ctx.fillText('+', screenX, screenY);
         } else if (this.type === 'ammo') {
-            // Ammo crate
             ctx.fillStyle = '#FF9800';
             ctx.fillRect(screenX - pulseSize/2, screenY - pulseSize/2, pulseSize, pulseSize);
             
@@ -824,7 +824,6 @@ class Resource {
             ctx.textBaseline = 'middle';
             ctx.fillText('A', screenX, screenY);
         } else if (this.type === 'experience') {
-            // Experience orb
             ctx.fillStyle = '#9C27B0';
             ctx.beginPath();
             ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
@@ -841,7 +840,7 @@ class Resource {
     }
 }
 
-// Enhanced Explosion class
+// Explosion class
 class Explosion {
     constructor(x, y, size, color = null) {
         this.x = x;
@@ -1049,6 +1048,73 @@ socket.on('player-killed', (data) => {
     }
 });
 
+// Add missing socket events
+socket.on('player-joined', (playerData) => {
+    console.log('Player joined:', playerData.name);
+    
+    if (playerData.id !== playerId) {
+        const vehicle = new Vehicle(
+            playerData.x,
+            playerData.y,
+            false,
+            playerData.id,
+            playerData.vehicleType,
+            playerData.color,
+            playerData.name
+        );
+        vehicle.level = playerData.level || 1;
+        vehicle.updateStats();
+        players.push(vehicle);
+    }
+});
+
+socket.on('player-left', (playerId) => {
+    console.log('Player left:', playerId);
+    players = players.filter(p => p.id !== playerId);
+});
+
+socket.on('bullet-created', (bulletData) => {
+    bullets.push(new Bullet(
+        bulletData.x,
+        bulletData.y,
+        bulletData.angle,
+        bulletData.ownerId,
+        bulletData.damage
+    ));
+});
+
+socket.on('resource-collected', (data) => {
+    resources = resources.filter(r => 
+        !(r.x === data.resource.x && r.y === data.resource.y && r.type === data.resource.type)
+    );
+    
+    if (data.playerId === playerId && player) {
+        if (data.resource.type === 'health') {
+            player.health = Math.min(player.maxHealth, player.health + data.resource.value);
+            healthDisplay.textContent = Math.ceil(player.health);
+        } else if (data.resource.type === 'experience') {
+            player.experience += data.resource.value;
+            player.score += 20;
+            scoreDisplay.textContent = player.score;
+            
+            const newLevel = Math.floor(player.experience / 300) + 1;
+            if (newLevel > player.level && player.levelUp()) {
+                levelDisplay.textContent = player.level;
+                vehicleNameDisplay.textContent = player.displayName;
+            }
+        }
+    }
+});
+
+socket.on('resource-spawned', (resourceData) => {
+    resources.push(new Resource(
+        resourceData.x,
+        resourceData.y,
+        resourceData.type,
+        resourceData.value
+    ));
+});
+
 // Game functions
 function initGame() {
     const nameInput = document.getElementById('playerNameInput');
@@ -1060,7 +1126,7 @@ function initGame() {
         true, 
         playerId,
         selectedVehicle,
-        null, // Let vehicle choose its default color
+        null,
         playerName
     );
     
@@ -1281,37 +1347,60 @@ function drawGrid() {
     const startX = Math.floor(camera.x / gridSize) * gridSize;
     const startY = Math.floor(camera.y / gridSize) * gridSize;
     
-    // Draw different terrain types
     for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
         for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
             const screenX = x - camera.x;
             const screenY = y - camera.y;
             
-            // Alternate terrain patterns
             const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
             
             switch(pattern) {
                 case 0:
-                    ctx.fillStyle = 'rgba(45, 80, 22, 0.8)'; // Dark grass
+                    ctx.fillStyle = 'rgba(45, 80, 22, 0.8)';
                     break;
                 case 1:
-                    ctx.fillStyle = 'rgba(60, 100, 30, 0.8)'; // Medium grass
+                    ctx.fillStyle = 'rgba(60, 100, 30, 0.8)';
                     break;
                 case 2:
-                    ctx.fillStyle = 'rgba(74, 124, 58, 0.8)'; // Light grass
+                    ctx.fillStyle = 'rgba(74, 124, 58, 0.8)';
                     break;
                 case 3:
-                    ctx.fillStyle = 'rgba(85, 140, 65, 0.8)'; // Bright grass
+                    ctx.fillStyle = 'rgba(85, 140, 65, 0.8)';
                     break;
             }
             
             ctx.fillRect(screenX, screenY, gridSize, gridSize);
             
-            // Grid lines
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.lineWidth = 1;
             ctx.strokeRect(screenX, screenY, gridSize, gridSize);
         }
+    }
+}
+
+function drawHUD() {
+    // Draw controls help
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, canvas.height - 100, 200, 90);
+    
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+    
+    if (!isMobile) {
+        ctx.fillText('WASD: Move', 20, canvas.height - 80);
+        ctx.fillText('Mouse: Aim', 20, canvas.height - 60);
+        ctx.fillText('Click: Shoot', 20, canvas.height - 40);
+        ctx.fillText('Space: Special Ability', 20, canvas.height - 20);
+    } else {
+        ctx.fillText('Touch: Move', 20, canvas.height - 80);
+        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
+    }
+    
+    // Draw ability info if available
+    if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
 }
 
@@ -1385,37 +1474,9 @@ function gameLoop(timestamp) {
     }
     
     drawMiniMap();
-    
-    // Draw HUD information
     drawHUD();
     
     requestAnimationFrame(gameLoop);
-}
-
-function drawHUD() {
-    // Draw controls help
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, canvas.height - 100, 200, 90);
-    
-    ctx.fillStyle = 'white';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'left';
-    
-    if (!isMobile) {
-        ctx.fillText('WASD: Move', 20, canvas.height - 80);
-        ctx.fillText('Mouse: Aim', 20, canvas.height - 60);
-        ctx.fillText('Click: Shoot', 20, canvas.height - 40);
-        ctx.fillText('Space: Special Ability', 20, canvas.height - 20);
-    } else {
-        ctx.fillText('Touch: Move', 20, canvas.height - 80);
-        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
-    }
-    
-    // Draw ability info if available
-    if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
-        ctx.fillStyle = '#4CAF50';
-        ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
-    }
 }
 
 // Start game
