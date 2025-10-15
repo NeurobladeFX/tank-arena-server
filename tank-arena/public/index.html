@@ -1,53 +1,136 @@
-<div id="vehicleSelection">
-    <h3>CHOOSE YOUR VEHICLE:</h3>
-    <div class="vehicle-options">
-        <div class="vehicle-option selected" data-vehicle="tank">
-            <div class="vehicle-preview">
-                <img src="assets/tank_basic_body.png" alt="Tank" class="vehicle-image">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Tanks - Multiplayer Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Game UI -->
+        <div id="gameUI">
+            <div id="playerStats">
+                <div>Vehicle: <span id="vehicleName">Tank</span></div>
+                <div>Health: <span id="health">150</span></div>
+                <div>Score: <span id="score">0</span></div>
+                <div>Kills: <span id="kills">0</span></div>
+                <div>Level: <span id="level">1</span></div>
             </div>
-            <div class="vehicle-name">Main Battle Tank</div>
-            <div class="vehicle-stats">Health: 150 | Damage: 35 | Speed: 2</div>
-            <div class="upgrade-info">Special: Damage Boost | Upgrades to 5 levels</div>
+            <div id="minimapContainer">
+                <canvas id="minimap"></canvas>
+            </div>
         </div>
-        <div class="vehicle-option" data-vehicle="jeep">
-            <div class="vehicle-preview">
-                <img src="assets/jeep_basic_body.png" alt="Jeep" class="vehicle-image">
-            </div>
-            <div class="vehicle-name">Combat Jeep</div>
-            <div class="vehicle-stats">Health: 100 | Damage: 20 | Speed: 4</div>
-            <div class="upgrade-info">Special: Speed Boost | Upgrades to 5 levels</div>
+        
+        <!-- Leaderboard -->
+        <div id="leaderboard">
+            <h3>LEADERBOARD</h3>
+            <div id="leaderboard-entries"></div>
         </div>
-        <div class="vehicle-option" data-vehicle="apc">
-            <div class="vehicle-preview">
-                <img src="assets/apc_basic_body.png" alt="APC" class="vehicle-image">
-            </div>
-            <div class="vehicle-name">Armored APC</div>
-            <div class="vehicle-stats">Health: 200 | Damage: 25 | Speed: 1.5</div>
-            <div class="upgrade-info">Special: Shield | Upgrades to 5 levels</div>
+        
+        <!-- Mobile Controls -->
+        <div id="mobileControls" class="hidden">
+            <div id="touchArea"></div>
+            <button id="fireButton">FIRE</button>
         </div>
-        <div class="vehicle-option" data-vehicle="artillery">
-            <div class="vehicle-preview">
-                <img src="assets/artillery_basic_body.png" alt="Artillery" class="vehicle-image">
+        
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <div id="startContent">
+                <h1>🚀 BATTLE TANKS</h1>
+                <p>Join the epic tank battle! Choose your vehicle and dominate the battlefield.</p>
+                
+                <div id="nameInput">
+                    <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="15" value="Player">
+                </div>
+                
+                <div id="vehicleSelection">
+                    <h3>CHOOSE YOUR VEHICLE:</h3>
+                    <div class="vehicle-options">
+                        <!-- Tank -->
+                        <div class="vehicle-option selected" data-vehicle="tank">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🚀</div>
+                            </div>
+                            <div class="vehicle-name">Main Battle Tank</div>
+                            <div class="vehicle-stats">Health: 150 | Damage: 35 | Speed: 2</div>
+                            <div class="upgrade-info">Special: Damage Boost | Upgrades to 5 levels</div>
+                        </div>
+                        
+                        <!-- Jeep -->
+                        <div class="vehicle-option" data-vehicle="jeep">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🚙</div>
+                            </div>
+                            <div class="vehicle-name">Combat Jeep</div>
+                            <div class="vehicle-stats">Health: 100 | Damage: 20 | Speed: 4</div>
+                            <div class="upgrade-info">Special: Speed Boost | Upgrades to 5 levels</div>
+                        </div>
+                        
+                        <!-- APC -->
+                        <div class="vehicle-option" data-vehicle="apc">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🚜</div>
+                            </div>
+                            <div class="vehicle-name">Armored APC</div>
+                            <div class="vehicle-stats">Health: 200 | Damage: 25 | Speed: 1.5</div>
+                            <div class="upgrade-info">Special: Shield | Upgrades to 5 levels</div>
+                        </div>
+                        
+                        <!-- Artillery -->
+                        <div class="vehicle-option" data-vehicle="artillery">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🚛</div>
+                            </div>
+                            <div class="vehicle-name">Field Artillery</div>
+                            <div class="vehicle-stats">Health: 120 | Damage: 50 | Speed: 1</div>
+                            <div class="upgrade-info">Special: Rapid Fire | Upgrades to 5 levels</div>
+                        </div>
+                        
+                        <!-- Helicopter -->
+                        <div class="vehicle-option" data-vehicle="helicopter">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🚁</div>
+                            </div>
+                            <div class="vehicle-name">Attack Helicopter</div>
+                            <div class="vehicle-stats">Health: 80 | Damage: 15 | Speed: 3.5</div>
+                            <div class="upgrade-info">Special: Stealth | Upgrades to 5 levels</div>
+                        </div>
+                        
+                        <!-- Mech -->
+                        <div class="vehicle-option" data-vehicle="mech">
+                            <div class="vehicle-preview">
+                                <div class="vehicle-icon">🤖</div>
+                            </div>
+                            <div class="vehicle-name">Combat Mech</div>
+                            <div class="vehicle-stats">Health: 180 | Damage: 40 | Speed: 1.8</div>
+                            <div class="upgrade-info">Special: Area Damage | Upgrades to 5 levels</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="startButton">START BATTLE</button>
             </div>
-            <div class="vehicle-name">Field Artillery</div>
-            <div class="vehicle-stats">Health: 120 | Damage: 50 | Speed: 1</div>
-            <div class="upgrade-info">Special: Rapid Fire | Upgrades to 5 levels</div>
         </div>
-        <div class="vehicle-option" data-vehicle="helicopter">
-            <div class="vehicle-preview">
-                <img src="assets/helicopter_basic_body.png" alt="Helicopter" class="vehicle-image">
+        
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden">
+            <div id="gameOverContent">
+                <h2>MISSION FAILED</h2>
+                <div id="finalStats">
+                    <div>Final Score: <span id="finalScore">0</span></div>
+                    <div>Enemies Destroyed: <span id="finalKills">0</span></div>
+                    <div>Level Reached: <span id="finalLevel">1</span></div>
+                    <div>Survival Time: <span id="survivalTime">0s</span></div>
+                </div>
+                <button id="playAgainButton">PLAY AGAIN</button>
             </div>
-            <div class="vehicle-name">Attack Helicopter</div>
-            <div class="vehicle-stats">Health: 80 | Damage: 15 | Speed: 3.5</div>
-            <div class="upgrade-info">Special: Stealth | Upgrades to 5 levels</div>
-        </div>
-        <div class="vehicle-option" data-vehicle="mech">
-            <div class="vehicle-preview">
-                <img src="assets/mech_basic_body.png" alt="Mech" class="vehicle-image">
-            </div>
-            <div class="vehicle-name">Combat Mech</div>
-            <div class="vehicle-stats">Health: 180 | Damage: 40 | Speed: 1.8</div>
-            <div class="upgrade-info">Special: Area Damage | Upgrades to 5 levels</div>
         </div>
     </div>
-</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
