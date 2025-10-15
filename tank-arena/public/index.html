@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Military Vehicles IO - Realistic Tank Battle</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="gameUI">
+            <div id="playerStats">
+                <div>Health: <span id="health">100</span></div>
+                <div>Score: <span id="score">0</span></div>
+                <div>Kills: <span id="kills">0</span></div>
+                <div>Level: <span id="level">1</span></div>
+                <div>Vehicle: <span id="vehicleName">Basic Tank</span></div>
+            </div>
+            <div id="minimapContainer">
+                <canvas id="minimap"></canvas>
+            </div>
+        </div>
+        
+        <div id="leaderboard">
+            <h3>🏆 LEADERBOARD</h3>
+            <div id="leaderboard-entries"></div>
+        </div>
+
+        <!-- Simplified Mobile Controls -->
+        <div id="mobileControls">
+            <div id="touchArea"></div>
+            <button id="fireButton">FIRE</button>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <div id="startContent">
+                <h1>🎯 MILITARY VEHICLES IO</h1>
+                <p>Realistic tank warfare with vehicle upgrades!</p>
+                
+                <div id="vehicleSelection">
+                    <h3>CHOOSE YOUR VEHICLE:</h3>
+                    <div class="vehicle-options">
+                        <div class="vehicle-option selected" data-vehicle="tank">
+                            <div class="vehicle-preview">
+                                <img src="assets/tank.png" alt="Tank" class="vehicle-image">
+                            </div>
+                            <div class="vehicle-name">Main Battle Tank</div>
+                            <div class="vehicle-stats">Health: 150 | Damage: 35 | Speed: 2</div>
+                            <div class="upgrade-info">Upgrades to: Advanced Tank → Battle Tank → Elite Tank</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="jeep">
+                            <div class="vehicle-preview">
+                                <img src="assets/jeep.png" alt="Jeep" class="vehicle-image">
+                            </div>
+                            <div class="vehicle-name">Combat Jeep</div>
+                            <div class="vehicle-stats">Health: 100 | Damage: 20 | Speed: 4</div>
+                            <div class="upgrade-info">Upgrades to: Combat Jeep → Assault Jeep → Commando Jeep</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="apc">
+                            <div class="vehicle-preview">
+                                <img src="assets/apc.png" alt="APC" class="vehicle-image">
+                            </div>
+                            <div class="vehicle-name">Armored APC</div>
+                            <div class="vehicle-stats">Health: 200 | Damage: 25 | Speed: 1.5</div>
+                            <div class="upgrade-info">Upgrades to: Armored APC → Heavy APC → Battle APC</div>
+                        </div>
+                        <div class="vehicle-option" data-vehicle="artillery">
+                            <div class="vehicle-preview">
+                                <img src="assets/artillery.png" alt="Artillery" class="vehicle-image">
+                            </div>
+                            <div class="vehicle-name">Field Artillery</div>
+                            <div class="vehicle-stats">Health: 120 | Damage: 50 | Speed: 1</div>
+                            <div class="upgrade-info">Upgrades to: Field Artillery → Heavy Artillery → Siege Artillery</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="nameInput">
+                    <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="15">
+                </div>
+                
+                <button id="startButton">DEPLOY TO BATTLEFIELD</button>
+                
+                <div id="controlsInfo">
+                    <h4>CONTROLS:</h4>
+                    <p><strong>Desktop:</strong> WASD to move, Mouse to aim, Click to shoot</p>
+                    <p><strong>Mobile:</strong> Touch and drag to move, FIRE button to shoot</p>
+                    <p><strong>Pro Tip:</strong> Level up to upgrade your vehicle with better stats!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden">
+            <div id="gameOverContent">
+                <h2>MISSION COMPLETE</h2>
+                <div id="finalStats">
+                    <div>Final Score: <span id="finalScore">0</span></div>
+                    <div>Total Kills: <span id="finalKills">0</span></div>
+                    <div>Vehicle Level: <span id="finalLevel">1</span></div>
+                    <div>Survival Time: <span id="survivalTime">0</span></div>
+                </div>
+                <button id="playAgainButton">FIGHT AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
