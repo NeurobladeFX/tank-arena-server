@@ -1120,11 +1120,13 @@ socket.on('bullet-created', (bulletData) => {
     ));
 });
 
-// FIXED: Resource collection now properly gives points
+// NEW: Resource collection now properly gives points
 socket.on('resource-collected', (data) => {
     // Remove the collected resource
     resources = resources.filter(r => 
-        !(r.x === data.resource.x && r.y === data.resource.y && r.type === data.resource.type)
+        !(Math.abs(r.x - data.resource.x) < 5 && 
+          Math.abs(r.y - data.resource.y) < 5 && 
+          r.type === data.resource.type)
     );
     
     // If it's our player, update stats
@@ -1172,6 +1174,110 @@ socket.on('player-upgraded', (data) => {
         upgradedPlayer.loadVehicleImages();
     }
 });
+
+// NEW: Handle vehicle upgrade selection
+socket.on('show-upgrade-screen', (data) => {
+    if (data.playerId === playerId) {
+        showUpgradeSelection(data.nextLevel);
+    }
+});
+
+// NEW: Handle successful vehicle upgrade
+socket.on('vehicle-upgraded', (data) => {
+    if (data.playerId === playerId && player) {
+        player.vehicleType = data.newVehicleType;
+        player.level = data.newLevel;
+        player.updateStats();
+        vehicleNameDisplay.textContent = player.displayName;
+        levelDisplay.textContent = player.level;
+        
+        // Show upgrade effect
+        for (let i = 0; i < 20; i++) {
+            explosions.push(new Explosion(
+                player.x + Math.random() * 100 - 50,
+                player.y + Math.random() * 100 - 50,
+                25,
+                '#4CAF50'
+            ));
+        }
+    }
+});
+
+// NEW: Show upgrade selection screen
+function showUpgradeSelection(nextLevel) {
+    const upgradeScreen = document.createElement('div');
+    upgradeScreen.id = 'upgradeScreen';
+    upgradeScreen.innerHTML = `
+        <div id="upgradeContent">
+            <h2>🚀 VEHICLE UPGRADE AVAILABLE!</h2>
+            <p>You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
+            <div class="upgrade-options">
+                <div class="upgrade-option" data-vehicle="tank">
+                    <div class="vehicle-icon">🚀</div>
+                    <div class="vehicle-name">${vehicleSystem.tank.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Health: ${vehicleSystem.tank.upgrades[nextLevel]?.health || 'MAX'} | Damage: ${vehicleSystem.tank.upgrades[nextLevel]?.damage || 'MAX'}</div>
+                </div>
+                <div class="upgrade-option" data-vehicle="jeep">
+                    <div class="vehicle-icon">🚙</div>
+                    <div class="vehicle-name">${vehicleSystem.jeep.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Health: ${vehicleSystem.jeep.upgrades[nextLevel]?.health || 'MAX'} | Speed: ${vehicleSystem.jeep.upgrades[nextLevel]?.speed || 'MAX'}</div>
+                </div>
+                <div class="upgrade-option" data-vehicle="apc">
+                    <div class="vehicle-icon">🚜</div>
+                    <div class="vehicle-name">${vehicleSystem.apc.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Health: ${vehicleSystem.apc.upgrades[nextLevel]?.health || 'MAX'} | Armor: Heavy</div>
+                </div>
+                <div class="upgrade-option" data-vehicle="artillery">
+                    <div class="vehicle-icon">🚛</div>
+                    <div class="vehicle-name">${vehicleSystem.artillery.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Damage: ${vehicleSystem.artillery.upgrades[nextLevel]?.damage || 'MAX'} | Range: Long</div>
+                </div>
+                <div class="upgrade-option" data-vehicle="helicopter">
+                    <div class="vehicle-icon">🚁</div>
+                    <div class="vehicle-name">${vehicleSystem.helicopter.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Speed: ${vehicleSystem.helicopter.upgrades[nextLevel]?.speed || 'MAX'} | Mobility: High</div>
+                </div>
+                <div class="upgrade-option" data-vehicle="mech">
+                    <div class="vehicle-icon">🤖</div>
+                    <div class="vehicle-name">${vehicleSystem.mech.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
+                    <div class="vehicle-stats">Health: ${vehicleSystem.mech.upgrades[nextLevel]?.health || 'MAX'} | Power: High</div>
+                </div>
+            </div>
+            <button id="confirmUpgrade">CONFIRM UPGRADE</button>
+        </div>
+    `;
+    
+    document.body.appendChild(upgradeScreen);
+    
+    let selectedVehicle = player.vehicleType;
+    
+    // Handle vehicle selection
+    document.querySelectorAll('.upgrade-option').forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.upgrade-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+            selectedVehicle = option.dataset.vehicle;
+        });
+    });
+    
+    // Auto-select current vehicle
+    const currentOption = document.querySelector(`.upgrade-option[data-vehicle="${selectedVehicle}"]`);
+    if (currentOption) {
+        currentOption.classList.add('selected');
+    }
+    
+    // Handle confirmation
+    document.getElementById('confirmUpgrade').addEventListener('click', () => {
+        socket.emit('select-vehicle-upgrade', {
+            playerId: playerId,
+            newVehicleType: selectedVehicle,
+            newLevel: nextLevel
+        });
+        document.body.removeChild(upgradeScreen);
+    });
+}
 
 // NEW: Check for resource collection
 function checkResourceCollection() {
@@ -1453,35 +1559,41 @@ function drawGrid() {
 function drawExperienceBar() {
     if (!player) return;
     
-    const barWidth = 200;
-    const barHeight = 10;
+    const barWidth = 250;
+    const barHeight = 12;
     const x = canvas.width / 2 - barWidth / 2;
-    const y = 10;
+    const y = 15;
     
-    const currentLevelExp = player.experience % 300;
-    const expPercent = currentLevelExp / 300;
+    // Progressive XP calculation
+    const xpNeeded = 300 + (player.level * 150);
+    const currentXP = player.experience % xpNeeded;
+    const expPercent = currentXP / xpNeeded;
     const nextLevel = player.level + 1;
     
+    // Background
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(x, y, barWidth, barHeight);
     
+    // XP fill with gradient
     const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
     gradient.addColorStop(0, '#9C27B0');
     gradient.addColorStop(1, '#E1BEE7');
     ctx.fillStyle = gradient;
     ctx.fillRect(x, y, barWidth * expPercent, barHeight);
     
+    // Border
     ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, barWidth, barHeight);
     
+    // Text
     ctx.fillStyle = 'white';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(
-        `Level ${player.level} | ${currentLevelExp}/300 XP | Next: Level ${nextLevel}`,
+        `Level ${player.level} | ${currentXP}/${xpNeeded} XP | Next: Level ${nextLevel}`,
         canvas.width / 2,
-        y + barHeight + 15
+        y + barHeight + 16
     );
 }
 
