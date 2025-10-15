@@ -1,7 +1,7 @@
 {
-  "name": "tank-arena-multiplayer",
+  "name": "military-vehicles-io",
   "version": "1.0.0",
-  "description": "Multiplayer Tank Arena Game",
+  "description": "Multiplayer Military Vehicles Battle Royale",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
