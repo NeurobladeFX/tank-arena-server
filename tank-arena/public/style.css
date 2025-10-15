@@ -107,7 +107,7 @@ body {
     color: #ffd700;
 }
 
-/* Simplified Mobile Controls */
+/* Mobile Controls */
 #mobileControls {
     position: absolute;
     bottom: 0;
@@ -124,13 +124,12 @@ body {
     left: 0;
     right: 0;
     bottom: 80px;
-    /* background: rgba(255, 0, 0, 0.1); */ /* Uncomment for debug */
 }
 
 #fireButton {
     position: absolute;
     right: 30px;
-    bottom: 120px; /* Higher from bottom */
+    bottom: 120px;
     width: 100px;
     height: 100px;
     border-radius: 50%;
@@ -226,9 +225,8 @@ body {
     justify-content: center;
 }
 
-.vehicle-image {
-    max-width: 100%;
-    max-height: 100%;
+.vehicle-icon {
+    font-size: 50px;
     filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
 }
 
