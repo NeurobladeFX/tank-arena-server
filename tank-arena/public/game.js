@@ -63,60 +63,60 @@ let camera = { x: 0, y: 0 };
 let mapSize = 4000;
 let startTime = Date.now();
 
-// Enhanced Vehicle System with 5 levels and 6 vehicles
+// Enhanced Vehicle System with 5 levels and 6 vehicles - INCREASED SIZES
 const vehicleSystem = {
     tank: {
-        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 50, fireRate: 1.0 },
+        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 70, fireRate: 1.0 }, // Increased from 50 to 70
         upgrades: {
-            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 55, fireRate: 1.1 },
-            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 60, fireRate: 1.2 },
-            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 65, fireRate: 1.3 },
-            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 70, fireRate: 1.5 }
+            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 75, fireRate: 1.1 }, // Increased from 55 to 75
+            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 80, fireRate: 1.2 }, // Increased from 60 to 80
+            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 85, fireRate: 1.3 }, // Increased from 65 to 85
+            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 90, fireRate: 1.5 }  // Increased from 70 to 90
         }
     },
     jeep: {
-        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 40, fireRate: 1.2 },
+        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 55, fireRate: 1.2 }, // Increased from 40 to 55
         upgrades: {
-            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 42, fireRate: 1.3 },
-            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 45, fireRate: 1.4 },
-            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 48, fireRate: 1.5 },
-            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 50, fireRate: 1.7 }
+            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 58, fireRate: 1.3 }, // Increased from 42 to 58
+            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 62, fireRate: 1.4 }, // Increased from 45 to 62
+            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 65, fireRate: 1.5 }, // Increased from 48 to 65
+            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 70, fireRate: 1.7 }  // Increased from 50 to 70
         }
     },
     apc: {
-        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 60, fireRate: 0.8 },
+        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 80, fireRate: 0.8 }, // Increased from 60 to 80
         upgrades: {
-            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 65, fireRate: 0.9 },
-            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 70, fireRate: 1.0 },
-            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 75, fireRate: 1.1 },
-            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 80, fireRate: 1.2 }
+            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 85, fireRate: 0.9 }, // Increased from 65 to 85
+            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 90, fireRate: 1.0 }, // Increased from 70 to 90
+            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 95, fireRate: 1.1 }, // Increased from 75 to 95
+            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 100, fireRate: 1.2 }   // Increased from 80 to 100
         }
     },
     artillery: {
-        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 55, fireRate: 0.5 },
+        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 70, fireRate: 0.5 }, // Increased from 55 to 70
         upgrades: {
-            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 60, fireRate: 0.6 },
-            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 65, fireRate: 0.7 },
-            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 70, fireRate: 0.8 },
-            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 75, fireRate: 0.9 }
+            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 75, fireRate: 0.6 }, // Increased from 60 to 75
+            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 80, fireRate: 0.7 }, // Increased from 65 to 80
+            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 85, fireRate: 0.8 }, // Increased from 70 to 85
+            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 90, fireRate: 0.9 }  // Increased from 75 to 90
         }
     },
     helicopter: {
-        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 45, fireRate: 2.0 },
+        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 60, fireRate: 2.0 }, // Increased from 45 to 60
         upgrades: {
-            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 48, fireRate: 2.2 },
-            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 52, fireRate: 2.4 },
-            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 55, fireRate: 2.6 },
-            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 58, fireRate: 2.8 }
+            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 65, fireRate: 2.2 }, // Increased from 48 to 65
+            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 70, fireRate: 2.4 }, // Increased from 52 to 70
+            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 75, fireRate: 2.6 }, // Increased from 55 to 75
+            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 80, fireRate: 2.8 }   // Increased from 58 to 80
         }
     },
     mech: {
-        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 52, fireRate: 0.9 },
+        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 65, fireRate: 0.9 }, // Increased from 52 to 65
         upgrades: {
-            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 56, fireRate: 1.0 },
-            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 60, fireRate: 1.1 },
-            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 64, fireRate: 1.2 },
-            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 68, fireRate: 1.3 }
+            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 70, fireRate: 1.0 }, // Increased from 56 to 70
+            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 75, fireRate: 1.1 }, // Increased from 60 to 75
+            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 80, fireRate: 1.2 }, // Increased from 64 to 80
+            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 85, fireRate: 1.3 }   // Increased from 68 to 85
         }
     }
 };
