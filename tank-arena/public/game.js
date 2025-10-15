@@ -63,60 +63,60 @@ let camera = { x: 0, y: 0 };
 let mapSize = 4000;
 let startTime = Date.now();
 
-// Enhanced Vehicle System with 5 levels and 6 vehicles - INCREASED SIZES
+// Enhanced Vehicle System with 5 levels and 6 vehicles
 const vehicleSystem = {
     tank: {
-        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, size: 70, fireRate: 1.0 },
+        base: { name: "Light Tank", health: 150, damage: 35, speed: 2, rotationSpeed: 0.05, size: 70, fireRate: 1.0 },
         upgrades: {
-            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, size: 75, fireRate: 1.1 },
-            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, size: 80, fireRate: 1.2 },
-            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, size: 85, fireRate: 1.3 },
-            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, size: 90, fireRate: 1.5 }
+            2: { name: "Medium Tank", health: 200, damage: 45, speed: 2.2, rotationSpeed: 0.06, size: 75, fireRate: 1.1 },
+            3: { name: "Heavy Tank", health: 280, damage: 55, speed: 2.3, rotationSpeed: 0.07, size: 80, fireRate: 1.2 },
+            4: { name: "Battle Tank", health: 350, damage: 65, speed: 2.4, rotationSpeed: 0.08, size: 85, fireRate: 1.3 },
+            5: { name: "Elite Tank", health: 450, damage: 80, speed: 2.5, rotationSpeed: 0.09, size: 90, fireRate: 1.5 }
         }
     },
     jeep: {
-        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, size: 55, fireRate: 1.2 },
+        base: { name: "Scout Jeep", health: 100, damage: 20, speed: 4, rotationSpeed: 0.08, size: 55, fireRate: 1.2 },
         upgrades: {
-            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, size: 58, fireRate: 1.3 },
-            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, size: 62, fireRate: 1.4 },
-            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, size: 65, fireRate: 1.5 },
-            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, size: 70, fireRate: 1.7 }
+            2: { name: "Combat Jeep", health: 130, damage: 25, speed: 4.5, rotationSpeed: 0.09, size: 58, fireRate: 1.3 },
+            3: { name: "Assault Jeep", health: 170, damage: 30, speed: 5.0, rotationSpeed: 0.10, size: 62, fireRate: 1.4 },
+            4: { name: "Raider Jeep", health: 220, damage: 35, speed: 5.5, rotationSpeed: 0.11, size: 65, fireRate: 1.5 },
+            5: { name: "Commando Jeep", health: 280, damage: 40, speed: 6.0, rotationSpeed: 0.12, size: 70, fireRate: 1.7 }
         }
     },
     apc: {
-        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, size: 80, fireRate: 0.8 },
+        base: { name: "Armored APC", health: 200, damage: 25, speed: 1.5, rotationSpeed: 0.04, size: 80, fireRate: 0.8 },
         upgrades: {
-            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, size: 85, fireRate: 0.9 },
-            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, size: 90, fireRate: 1.0 },
-            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, size: 95, fireRate: 1.1 },
-            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, size: 100, fireRate: 1.2 }
+            2: { name: "Heavy APC", health: 280, damage: 30, speed: 1.7, rotationSpeed: 0.05, size: 85, fireRate: 0.9 },
+            3: { name: "Battle APC", health: 350, damage: 35, speed: 1.9, rotationSpeed: 0.06, size: 90, fireRate: 1.0 },
+            4: { name: "Assault APC", health: 450, damage: 40, speed: 2.1, rotationSpeed: 0.07, size: 95, fireRate: 1.1 },
+            5: { name: "Titan APC", health: 550, damage: 50, speed: 2.3, rotationSpeed: 0.08, size: 100, fireRate: 1.2 }
         }
     },
     artillery: {
-        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, size: 70, fireRate: 0.5 },
+        base: { name: "Field Artillery", health: 120, damage: 50, speed: 1, rotationSpeed: 0.03, size: 70, fireRate: 0.5 },
         upgrades: {
-            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, size: 75, fireRate: 0.6 },
-            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, size: 80, fireRate: 0.7 },
-            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, size: 85, fireRate: 0.8 },
-            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, size: 90, fireRate: 0.9 }
+            2: { name: "Heavy Artillery", health: 160, damage: 65, speed: 1.1, rotationSpeed: 0.04, size: 75, fireRate: 0.6 },
+            3: { name: "Siege Artillery", health: 210, damage: 80, speed: 1.2, rotationSpeed: 0.05, size: 80, fireRate: 0.7 },
+            4: { name: "Mobile Artillery", health: 270, damage: 95, speed: 1.3, rotationSpeed: 0.06, size: 85, fireRate: 0.8 },
+            5: { name: "Super Artillery", health: 340, damage: 120, speed: 1.4, rotationSpeed: 0.07, size: 90, fireRate: 0.9 }
         }
     },
     helicopter: {
-        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, size: 60, fireRate: 2.0 },
+        base: { name: "Scout Helicopter", health: 80, damage: 15, speed: 3.5, rotationSpeed: 0.10, size: 60, fireRate: 2.0 },
         upgrades: {
-            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, size: 65, fireRate: 2.2 },
-            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, size: 70, fireRate: 2.4 },
-            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, size: 75, fireRate: 2.6 },
-            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, size: 80, fireRate: 2.8 }
+            2: { name: "Attack Helicopter", health: 110, damage: 20, speed: 3.8, rotationSpeed: 0.11, size: 65, fireRate: 2.2 },
+            3: { name: "Gunship Helicopter", health: 150, damage: 25, speed: 4.0, rotationSpeed: 0.12, size: 70, fireRate: 2.4 },
+            4: { name: "Heavy Gunship", health: 200, damage: 30, speed: 4.2, rotationSpeed: 0.13, size: 75, fireRate: 2.6 },
+            5: { name: "Elite Helicopter", health: 260, damage: 35, speed: 4.5, rotationSpeed: 0.14, size: 80, fireRate: 2.8 }
         }
     },
     mech: {
-        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, size: 65, fireRate: 0.9 },
+        base: { name: "Combat Mech", health: 180, damage: 40, speed: 1.8, rotationSpeed: 0.06, size: 65, fireRate: 0.9 },
         upgrades: {
-            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, size: 70, fireRate: 1.0 },
-            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, size: 75, fireRate: 1.1 },
-            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, size: 80, fireRate: 1.2 },
-            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, size: 85, fireRate: 1.3 }
+            2: { name: "Assault Mech", health: 240, damage: 50, speed: 1.9, rotationSpeed: 0.07, size: 70, fireRate: 1.0 },
+            3: { name: "Heavy Mech", health: 320, damage: 60, speed: 2.0, rotationSpeed: 0.08, size: 75, fireRate: 1.1 },
+            4: { name: "Battle Mech", health: 400, damage: 70, speed: 2.1, rotationSpeed: 0.09, size: 80, fireRate: 1.2 },
+            5: { name: "Titan Mech", health: 500, damage: 85, speed: 2.2, rotationSpeed: 0.10, size: 85, fireRate: 1.3 }
         }
     }
 };
@@ -152,7 +152,7 @@ canvas.addEventListener('mousemove', (e) => {
     mouse.y = e.clientY - rect.top + camera.y;
 });
 
-// Mobile controls - FIXED
+// Mobile controls
 if (isMobile) {
     mobileControls.style.display = 'block';
     
@@ -180,7 +180,7 @@ if (isMobile) {
         touch.y = touchEvent.clientY - rect.top;
         
         // Calculate movement direction
-        touch.moveX = (touch.x - touch.startX) * 0.02; // Reduced sensitivity
+        touch.moveX = (touch.x - touch.startX) * 0.02;
         touch.moveY = (touch.y - touch.startY) * 0.02;
     });
     
@@ -241,7 +241,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class - FIXED for upgrade synchronization
+// Vehicle class with proper tank controls
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -264,6 +264,12 @@ class Vehicle {
         this.specialAbilityCooldown = 0;
         this.specialAbilityActive = false;
         this.specialAbilityDuration = 0;
+        
+        // Movement state
+        this.movingForward = false;
+        this.movingBackward = false;
+        this.turningLeft = false;
+        this.turningRight = false;
         
         // Load vehicle images
         this.bodyImage = new Image();
@@ -341,12 +347,13 @@ class Vehicle {
         this.width = stats.size;
         this.height = stats.size;
         this.speed = stats.speed;
+        this.rotationSpeed = stats.rotationSpeed;
         this.maxHealth = stats.health;
         this.damage = stats.damage;
         this.fireRate = stats.fireRate;
         this.maxCooldown = 60 / this.fireRate;
         
-        // FIX: Ensure health doesn't go negative
+        // Ensure health doesn't go negative
         if (!this.health || this.health < 0) {
             this.health = this.maxHealth;
         }
@@ -441,24 +448,33 @@ class Vehicle {
     update() {
         if (this.isPlayer) {
             let moved = false;
-            let moveX = 0, moveY = 0;
 
             if (!isMobile) {
-                // Desktop controls
-                if (keys['w'] || keys['arrowup']) {
-                    moveY -= 1;
+                // PROPER TANK CONTROLS: W/S for forward/backward, A/D for rotation
+                this.movingForward = keys['w'] || keys['arrowup'];
+                this.movingBackward = keys['s'] || keys['arrowdown'];
+                this.turningLeft = keys['a'] || keys['arrowleft'];
+                this.turningRight = keys['d'] || keys['arrowright'];
+                
+                // Apply rotation
+                if (this.turningLeft) {
+                    this.angle -= this.rotationSpeed;
                     moved = true;
                 }
-                if (keys['s'] || keys['arrowdown']) {
-                    moveY += 1;
+                if (this.turningRight) {
+                    this.angle += this.rotationSpeed;
                     moved = true;
                 }
-                if (keys['a'] || keys['arrowleft']) {
-                    moveX -= 1;
+                
+                // Apply movement
+                if (this.movingForward) {
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
                     moved = true;
                 }
-                if (keys['d'] || keys['arrowright']) {
-                    moveX += 1;
+                if (this.movingBackward) {
+                    this.x -= Math.cos(this.angle) * this.speed * 0.7; // Slower when moving backward
+                    this.y -= Math.sin(this.angle) * this.speed * 0.7;
                     moved = true;
                 }
                 
@@ -468,44 +484,44 @@ class Vehicle {
                     keys[' '] = false;
                 }
 
-                // Mouse aiming
+                // Mouse aiming for turret
                 if (mouse.x && mouse.y) {
                     const dx = mouse.x - this.x;
                     const dy = mouse.y - this.y;
                     this.turretAngle = Math.atan2(dy, dx);
                 }
             } else {
-                // FIXED Mobile touch controls
+                // FIXED Mobile touch controls - PROPER TANK CONTROLS
                 if (touch.active) {
-                    moveX = touch.moveX;
-                    moveY = touch.moveY;
+                    const dx = touch.moveX;
+                    const dy = touch.moveY;
                     
-                    if (Math.abs(moveX) > 0.1 || Math.abs(moveY) > 0.1) {
-                        this.angle = Math.atan2(moveY, moveX);
-                        this.turretAngle = this.angle;
+                    // Use X for rotation, Y for movement
+                    if (Math.abs(dx) > 0.1) {
+                        this.angle += dx * this.rotationSpeed * 10;
                         moved = true;
                     }
+                    
+                    if (Math.abs(dy) > 0.1) {
+                        this.x += Math.cos(this.angle) * dy * this.speed * 10;
+                        this.y += Math.sin(this.angle) * dy * this.speed * 10;
+                        moved = true;
+                    }
+                    
+                    // Set turret angle to match vehicle angle for mobile
+                    this.turretAngle = this.angle;
                 }
             }
 
-            // Apply movement
+            // Send update to server if moved
             if (moved) {
-                const length = Math.sqrt(moveX * moveX + moveY * moveY);
-                if (length > 0) {
-                    moveX /= length;
-                    moveY /= length;
-                    
-                    this.x += moveX * this.speed;
-                    this.y += moveY * this.speed;
-                }
-
                 socket.emit('player-update', {
                     id: this.id,
                     x: this.x,
                     y: this.y,
                     angle: this.angle,
                     turretAngle: this.turretAngle,
-                    level: this.level // FIX: Send level to other players
+                    level: this.level
                 });
             }
 
@@ -700,10 +716,10 @@ class Vehicle {
             }
         }
 
-        // FIX: Draw health bar with clamping to prevent negative values
+        // Draw health bar with clamping to prevent negative values
         const barWidth = 50;
         const barHeight = 5;
-        const healthPercent = Math.max(0, this.health / this.maxHealth); // FIX: Clamp to 0
+        const healthPercent = Math.max(0, this.health / this.maxHealth);
         
         ctx.fillStyle = 'red';
         ctx.fillRect(screenX - barWidth/2, screenY - this.height/2 - 35, barWidth, barHeight);
@@ -845,7 +861,7 @@ class Resource {
     }
 }
 
-// FIXED Explosion class - No more negative radius error
+// FIXED Explosion class
 class Explosion {
     constructor(x, y, size, color = null) {
         this.x = x;
@@ -880,13 +896,11 @@ class Explosion {
             }
         } else {
             this.currentSize -= 2;
-            // FIX: Prevent negative size
             if (this.currentSize < 0) {
                 this.currentSize = 0;
             }
         }
 
-        // Update particles
         this.particles.forEach(particle => {
             particle.x += Math.cos(particle.angle) * particle.speed;
             particle.y += Math.sin(particle.angle) * particle.speed;
@@ -901,9 +915,7 @@ class Explosion {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // FIX: Only draw if currentSize is positive
         if (this.currentSize > 0) {
-            // Main explosion with gradient
             const gradient = ctx.createRadialGradient(
                 screenX, screenY, 0,
                 screenX, screenY, this.currentSize
@@ -918,7 +930,6 @@ class Explosion {
             ctx.fill();
         }
 
-        // Particles
         this.particles.forEach(particle => {
             const particleX = particle.x - camera.x;
             const particleY = particle.y - camera.y;
@@ -938,7 +949,7 @@ class Explosion {
     }
 }
 
-// Socket events - FIXED for upgrade synchronization
+// Socket events
 socket.on('connect', () => {
     playerId = socket.id;
     console.log('Connected to server with ID:', playerId);
@@ -963,14 +974,11 @@ socket.on('game-state', (gameState) => {
                 player.level = playerData.level;
                 player.turretAngle = playerData.turretAngle || player.turretAngle;
                 
-                // Update UI
                 healthDisplay.textContent = Math.ceil(player.health);
                 killsDisplay.textContent = player.kills;
                 scoreDisplay.textContent = player.score;
                 levelDisplay.textContent = player.level;
-                vehicleNameDisplay.textContent = player.displayName;
                 
-                // Update vehicle stats if level changed
                 if (oldLevel !== player.level) {
                     player.updateStats();
                     vehicleNameDisplay.textContent = player.displayName;
@@ -979,10 +987,8 @@ socket.on('game-state', (gameState) => {
             return player;
         }
         
-        // FIX: For other players, check if we need to create new vehicle or update existing
         let vehicle = players.find(p => p.id === playerData.id);
         if (!vehicle) {
-            // Create new vehicle for new player
             vehicle = new Vehicle(
                 playerData.x, 
                 playerData.y, 
@@ -994,7 +1000,6 @@ socket.on('game-state', (gameState) => {
             );
         }
         
-        // Update vehicle properties
         vehicle.x = playerData.x;
         vehicle.y = playerData.y;
         vehicle.health = playerData.health;
@@ -1004,25 +1009,23 @@ socket.on('game-state', (gameState) => {
         vehicle.angle = playerData.angle;
         vehicle.turretAngle = playerData.turretAngle || playerData.angle;
         
-        // FIX: Update level and reload images if level changed
         if (vehicle.level !== playerData.level) {
             vehicle.level = playerData.level;
             vehicle.updateStats();
-            vehicle.loadVehicleImages(); // Reload images for the new level
+            vehicle.loadVehicleImages();
         }
         
         return vehicle;
-    }).filter(Boolean); // Remove any null entries
+    }).filter(Boolean);
     
     bullets = gameState.bullets.map(bulletData => {
-        const bullet = new Bullet(
+        return new Bullet(
             bulletData.x, 
             bulletData.y, 
             bulletData.angle, 
             bulletData.ownerId,
             bulletData.damage
         );
-        return bullet;
     });
     
     obstacles = gameState.obstacles;
@@ -1039,10 +1042,9 @@ socket.on('leaderboard-update', (updatedLeaderboard) => {
 });
 
 socket.on('player-hit', (data) => {
-    // FIX: Prevent negative health
     if (data.playerId === playerId) {
         if (player) {
-            player.health = Math.max(0, data.newHealth); // FIX: Clamp to 0
+            player.health = Math.max(0, data.newHealth);
             healthDisplay.textContent = Math.ceil(player.health);
         }
         explosions.push(new Explosion(data.x, data.y, 25));
@@ -1065,13 +1067,11 @@ socket.on('player-killed', (data) => {
         killsDisplay.textContent = player.kills;
         scoreDisplay.textContent = player.score;
         
-        // Check for level up (every 300 experience)
         const newLevel = Math.floor(player.experience / 300) + 1;
         if (newLevel > player.level && player.levelUp()) {
             levelDisplay.textContent = player.level;
             vehicleNameDisplay.textContent = player.displayName;
             
-            // FIX: Send level update to server so other players can see the upgrade
             socket.emit('player-upgraded', {
                 id: playerId,
                 level: player.level,
@@ -1086,7 +1086,6 @@ socket.on('player-killed', (data) => {
     }
 });
 
-// Add missing socket events
 socket.on('player-joined', (playerData) => {
     console.log('Player joined:', playerData.name);
     
@@ -1121,11 +1120,14 @@ socket.on('bullet-created', (bulletData) => {
     ));
 });
 
+// FIXED: Resource collection now properly gives points
 socket.on('resource-collected', (data) => {
+    // Remove the collected resource
     resources = resources.filter(r => 
         !(r.x === data.resource.x && r.y === data.resource.y && r.type === data.resource.type)
     );
     
+    // If it's our player, update stats
     if (data.playerId === playerId && player) {
         if (data.resource.type === 'health') {
             player.health = Math.min(player.maxHealth, player.health + data.resource.value);
@@ -1140,7 +1142,6 @@ socket.on('resource-collected', (data) => {
                 levelDisplay.textContent = player.level;
                 vehicleNameDisplay.textContent = player.displayName;
                 
-                // FIX: Send level update to server
                 socket.emit('player-upgraded', {
                     id: playerId,
                     level: player.level,
@@ -1148,6 +1149,9 @@ socket.on('resource-collected', (data) => {
                 });
             }
         }
+        
+        // Add explosion effect for collection
+        explosions.push(new Explosion(data.resource.x, data.resource.y, 15, '#4CAF50'));
     }
 });
 
@@ -1160,15 +1164,39 @@ socket.on('resource-spawned', (resourceData) => {
     ));
 });
 
-// NEW: Handle player upgrades from other players
 socket.on('player-upgraded', (data) => {
     const upgradedPlayer = players.find(p => p.id === data.playerId);
     if (upgradedPlayer) {
         upgradedPlayer.level = data.level;
         upgradedPlayer.updateStats();
-        upgradedPlayer.loadVehicleImages(); // Reload images for the new level
+        upgradedPlayer.loadVehicleImages();
     }
 });
+
+// NEW: Check for resource collection
+function checkResourceCollection() {
+    if (!player) return;
+    
+    resources.forEach((resource, index) => {
+        const dx = resource.x - player.x;
+        const dy = resource.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < player.width/2 + resource.size && !resource.collected) {
+            resource.collected = true;
+            
+            socket.emit('collect-resource', {
+                playerId: player.id,
+                resource: {
+                    x: resource.x,
+                    y: resource.y,
+                    type: resource.type,
+                    value: resource.value
+                }
+            });
+        }
+    });
+}
 
 // Game functions
 function initGame() {
@@ -1213,7 +1241,6 @@ function initGame() {
 function generateObstacles() {
     obstacles = [];
     
-    // Generate random obstacles
     for (let i = 0; i < 50; i++) {
         obstacles.push({
             x: Math.random() * mapSize,
@@ -1223,7 +1250,6 @@ function generateObstacles() {
         });
     }
     
-    // Generate some large terrain features
     for (let i = 0; i < 8; i++) {
         obstacles.push({
             x: Math.random() * mapSize,
@@ -1233,7 +1259,6 @@ function generateObstacles() {
         });
     }
     
-    // Generate some walls
     for (let i = 0; i < 10; i++) {
         const isHorizontal = Math.random() > 0.5;
         if (isHorizontal) {
@@ -1257,7 +1282,6 @@ function generateObstacles() {
 function generateResources() {
     resources = [];
     
-    // Generate health packs
     for (let i = 0; i < 20; i++) {
         resources.push(new Resource(
             Math.random() * mapSize,
@@ -1267,7 +1291,6 @@ function generateResources() {
         ));
     }
     
-    // Generate ammo crates
     for (let i = 0; i < 15; i++) {
         resources.push(new Resource(
             Math.random() * mapSize,
@@ -1277,7 +1300,6 @@ function generateResources() {
         ));
     }
     
-    // Generate experience orbs
     for (let i = 0; i < 25; i++) {
         resources.push(new Resource(
             Math.random() * mapSize,
@@ -1328,7 +1350,6 @@ function drawMiniMap() {
     
     const scale = minimap.width / mapSize;
     
-    // Draw obstacles
     minimapCtx.fillStyle = '#666';
     obstacles.forEach(obstacle => {
         minimapCtx.fillRect(
@@ -1339,7 +1360,6 @@ function drawMiniMap() {
         );
     });
     
-    // Draw resources
     resources.forEach(resource => {
         if (resource.collected) return;
         
@@ -1355,14 +1375,12 @@ function drawMiniMap() {
         minimapCtx.fill();
     });
     
-    // Draw players
     players.forEach(p => {
         minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : p.color;
         minimapCtx.beginPath();
         minimapCtx.arc(p.x * scale, p.y * scale, 3, 0, Math.PI * 2);
         minimapCtx.fill();
         
-        // Draw direction indicator
         minimapCtx.strokeStyle = 'white';
         minimapCtx.lineWidth = 1;
         minimapCtx.beginPath();
@@ -1374,7 +1392,6 @@ function drawMiniMap() {
         minimapCtx.stroke();
     });
     
-    // Draw camera view
     minimapCtx.strokeStyle = '#ffd700';
     minimapCtx.lineWidth = 2;
     minimapCtx.strokeRect(
@@ -1397,7 +1414,6 @@ function showGameOver() {
     gameOverScreen.classList.remove('hidden');
 }
 
-// Enhanced terrain drawing
 function drawGrid() {
     const gridSize = 100;
     const startX = Math.floor(camera.x / gridSize) * gridSize;
@@ -1434,7 +1450,6 @@ function drawGrid() {
     }
 }
 
-// NEW: Draw experience progress bar
 function drawExperienceBar() {
     if (!player) return;
     
@@ -1443,28 +1458,23 @@ function drawExperienceBar() {
     const x = canvas.width / 2 - barWidth / 2;
     const y = 10;
     
-    // Calculate experience progress
     const currentLevelExp = player.experience % 300;
     const expPercent = currentLevelExp / 300;
     const nextLevel = player.level + 1;
     
-    // Background
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(x, y, barWidth, barHeight);
     
-    // Experience fill
     const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
     gradient.addColorStop(0, '#9C27B0');
     gradient.addColorStop(1, '#E1BEE7');
     ctx.fillStyle = gradient;
     ctx.fillRect(x, y, barWidth * expPercent, barHeight);
     
-    // Border
     ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, barWidth, barHeight);
     
-    // Text
     ctx.fillStyle = 'white';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
@@ -1476,7 +1486,6 @@ function drawExperienceBar() {
 }
 
 function drawHUD() {
-    // Draw controls help
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(10, canvas.height - 100, 200, 90);
     
@@ -1485,23 +1494,20 @@ function drawHUD() {
     ctx.textAlign = 'left';
     
     if (!isMobile) {
-        ctx.fillText('WASD: Move', 20, canvas.height - 80);
-        ctx.fillText('Mouse: Aim', 20, canvas.height - 60);
-        ctx.fillText('Click: Shoot', 20, canvas.height - 40);
-        ctx.fillText('Space: Special Ability', 20, canvas.height - 20);
+        ctx.fillText('W/S: Forward/Backward', 20, canvas.height - 80);
+        ctx.fillText('A/D: Rotate', 20, canvas.height - 60);
+        ctx.fillText('Mouse: Aim Turret', 20, canvas.height - 40);
+        ctx.fillText('Click: Shoot | Space: Ability', 20, canvas.height - 20);
     } else {
-        ctx.fillText('Touch: Move', 20, canvas.height - 80);
+        ctx.fillText('Touch & Drag: Move & Rotate', 20, canvas.height - 80);
         ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
-        ctx.fillText('Swipe: Aim & Move', 20, canvas.height - 40);
     }
     
-    // Draw ability info if available
     if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
         ctx.fillStyle = '#4CAF50';
         ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
     
-    // Draw experience progress bar
     drawExperienceBar();
 }
 
@@ -1511,19 +1517,16 @@ function gameLoop(timestamp) {
     
     updateCamera();
     
-    // Clear canvas with battlefield background
     ctx.fillStyle = '#2d5016';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     drawGrid();
     
-    // Update and draw resources
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
     
-    // Draw obstacles
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -1549,7 +1552,6 @@ function gameLoop(timestamp) {
         }
     });
     
-    // Update and draw players
     players.forEach(p => {
         if (p.isPlayer) {
             p.update();
@@ -1557,13 +1559,11 @@ function gameLoop(timestamp) {
         p.draw();
     });
     
-    // Update and draw bullets
     bullets.forEach(bullet => {
         bullet.update();
         bullet.draw();
     });
     
-    // Update and draw explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
@@ -1573,6 +1573,9 @@ function gameLoop(timestamp) {
             explosions.splice(i, 1);
         }
     }
+    
+    // FIXED: Check for resource collection every frame
+    checkResourceCollection();
     
     drawMiniMap();
     drawHUD();
@@ -1608,7 +1611,6 @@ window.addEventListener('beforeunload', () => {
 // Auto-select first vehicle
 vehicleOptions[0].classList.add('selected');
 
-// Enable start button after 3 seconds if no config received
 setTimeout(() => {
     if (document.getElementById('startButton').disabled) {
         console.warn('Server config not received, using defaults');
