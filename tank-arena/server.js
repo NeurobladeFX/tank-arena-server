@@ -25,57 +25,57 @@ const MAX_PLAYERS = 50;
 // Enhanced Vehicle System with 5 Levels and 6 Vehicles
 const VEHICLE_SYSTEM = {
     tank: {
-        base: { health: 150, speed: 2, damage: 35, size: 70, fireRate: 1.0, name: "Light Tank" },
+        base: { health: 150, speed: 2, damage: 35, size: 70, fireRate: 1.0, name: "Light Tank", rotationSpeed: 0.03 },
         upgrades: {
-            2: { health: 200, speed: 2.2, damage: 45, size: 75, fireRate: 1.1, name: "Medium Tank" },
-            3: { health: 280, speed: 2.3, damage: 55, size: 80, fireRate: 1.2, name: "Heavy Tank" },
-            4: { health: 350, speed: 2.4, damage: 65, size: 85, fireRate: 1.3, name: "Battle Tank" },
-            5: { health: 450, speed: 2.5, damage: 80, size: 90, fireRate: 1.5, name: "Elite Tank" }
+            2: { health: 200, speed: 2.2, damage: 45, size: 75, fireRate: 1.1, name: "Medium Tank", rotationSpeed: 0.035 },
+            3: { health: 280, speed: 2.3, damage: 55, size: 80, fireRate: 1.2, name: "Heavy Tank", rotationSpeed: 0.04 },
+            4: { health: 350, speed: 2.4, damage: 65, size: 85, fireRate: 1.3, name: "Battle Tank", rotationSpeed: 0.045 },
+            5: { health: 450, speed: 2.5, damage: 80, size: 90, fireRate: 1.5, name: "Elite Tank", rotationSpeed: 0.05 }
         }
     },
     jeep: {
-        base: { health: 100, speed: 4, damage: 20, size: 55, fireRate: 1.2, name: "Scout Jeep" },
+        base: { health: 100, speed: 4, damage: 20, size: 55, fireRate: 1.2, name: "Scout Jeep", rotationSpeed: 0.05 },
         upgrades: {
-            2: { health: 130, speed: 4.5, damage: 25, size: 58, fireRate: 1.3, name: "Combat Jeep" },
-            3: { health: 170, speed: 5.0, damage: 30, size: 62, fireRate: 1.4, name: "Assault Jeep" },
-            4: { health: 220, speed: 5.5, damage: 35, size: 65, fireRate: 1.5, name: "Raider Jeep" },
-            5: { health: 280, speed: 6.0, damage: 40, size: 70, fireRate: 1.7, name: "Commando Jeep" }
+            2: { health: 130, speed: 4.5, damage: 25, size: 58, fireRate: 1.3, name: "Combat Jeep", rotationSpeed: 0.055 },
+            3: { health: 170, speed: 5.0, damage: 30, size: 62, fireRate: 1.4, name: "Assault Jeep", rotationSpeed: 0.06 },
+            4: { health: 220, speed: 5.5, damage: 35, size: 65, fireRate: 1.5, name: "Raider Jeep", rotationSpeed: 0.065 },
+            5: { health: 280, speed: 6.0, damage: 40, size: 70, fireRate: 1.7, name: "Commando Jeep", rotationSpeed: 0.07 }
         }
     },
     apc: {
-        base: { health: 200, speed: 1.5, damage: 25, size: 80, fireRate: 0.8, name: "Armored APC" },
+        base: { health: 200, speed: 1.5, damage: 25, size: 80, fireRate: 0.8, name: "Armored APC", rotationSpeed: 0.025 },
         upgrades: {
-            2: { health: 280, speed: 1.7, damage: 30, size: 85, fireRate: 0.9, name: "Heavy APC" },
-            3: { health: 350, speed: 1.9, damage: 35, size: 90, fireRate: 1.0, name: "Battle APC" },
-            4: { health: 450, speed: 2.1, damage: 40, size: 95, fireRate: 1.1, name: "Assault APC" },
-            5: { health: 550, speed: 2.3, damage: 50, size: 100, fireRate: 1.2, name: "Titan APC" }
+            2: { health: 280, speed: 1.7, damage: 30, size: 85, fireRate: 0.9, name: "Heavy APC", rotationSpeed: 0.03 },
+            3: { health: 350, speed: 1.9, damage: 35, size: 90, fireRate: 1.0, name: "Battle APC", rotationSpeed: 0.035 },
+            4: { health: 450, speed: 2.1, damage: 40, size: 95, fireRate: 1.1, name: "Assault APC", rotationSpeed: 0.04 },
+            5: { health: 550, speed: 2.3, damage: 50, size: 100, fireRate: 1.2, name: "Titan APC", rotationSpeed: 0.045 }
         }
     },
     artillery: {
-        base: { health: 120, speed: 1, damage: 50, size: 70, fireRate: 0.5, name: "Field Artillery" },
+        base: { health: 120, speed: 1, damage: 50, size: 70, fireRate: 0.5, name: "Field Artillery", rotationSpeed: 0.02 },
         upgrades: {
-            2: { health: 160, speed: 1.1, damage: 65, size: 75, fireRate: 0.6, name: "Heavy Artillery" },
-            3: { health: 210, speed: 1.2, damage: 80, size: 80, fireRate: 0.7, name: "Siege Artillery" },
-            4: { health: 270, speed: 1.3, damage: 95, size: 85, fireRate: 0.8, name: "Mobile Artillery" },
-            5: { health: 340, speed: 1.4, damage: 120, size: 90, fireRate: 0.9, name: "Super Artillery" }
+            2: { health: 160, speed: 1.1, damage: 65, size: 75, fireRate: 0.6, name: "Heavy Artillery", rotationSpeed: 0.025 },
+            3: { health: 210, speed: 1.2, damage: 80, size: 80, fireRate: 0.7, name: "Siege Artillery", rotationSpeed: 0.03 },
+            4: { health: 270, speed: 1.3, damage: 95, size: 85, fireRate: 0.8, name: "Mobile Artillery", rotationSpeed: 0.035 },
+            5: { health: 340, speed: 1.4, damage: 120, size: 90, fireRate: 0.9, name: "Super Artillery", rotationSpeed: 0.04 }
         }
     },
     helicopter: {
-        base: { health: 80, speed: 3.5, damage: 15, size: 60, fireRate: 2.0, name: "Scout Helicopter" },
+        base: { health: 80, speed: 3.5, damage: 15, size: 60, fireRate: 2.0, name: "Scout Helicopter", rotationSpeed: 0.06 },
         upgrades: {
-            2: { health: 110, speed: 3.8, damage: 20, size: 65, fireRate: 2.2, name: "Attack Helicopter" },
-            3: { health: 150, speed: 4.0, damage: 25, size: 70, fireRate: 2.4, name: "Gunship Helicopter" },
-            4: { health: 200, speed: 4.2, damage: 30, size: 75, fireRate: 2.6, name: "Heavy Gunship" },
-            5: { health: 260, speed: 4.5, damage: 35, size: 80, fireRate: 2.8, name: "Elite Helicopter" }
+            2: { health: 110, speed: 3.8, damage: 20, size: 65, fireRate: 2.2, name: "Attack Helicopter", rotationSpeed: 0.065 },
+            3: { health: 150, speed: 4.0, damage: 25, size: 70, fireRate: 2.4, name: "Gunship Helicopter", rotationSpeed: 0.07 },
+            4: { health: 200, speed: 4.2, damage: 30, size: 75, fireRate: 2.6, name: "Heavy Gunship", rotationSpeed: 0.075 },
+            5: { health: 260, speed: 4.5, damage: 35, size: 80, fireRate: 2.8, name: "Elite Helicopter", rotationSpeed: 0.08 }
         }
     },
     mech: {
-        base: { health: 180, speed: 1.8, damage: 40, size: 65, fireRate: 0.9, name: "Combat Mech" },
+        base: { health: 180, speed: 1.8, damage: 40, size: 65, fireRate: 0.9, name: "Combat Mech", rotationSpeed: 0.04 },
         upgrades: {
-            2: { health: 240, speed: 1.9, damage: 50, size: 70, fireRate: 1.0, name: "Assault Mech" },
-            3: { health: 320, speed: 2.0, damage: 60, size: 75, fireRate: 1.1, name: "Heavy Mech" },
-            4: { health: 400, speed: 2.1, damage: 70, size: 80, fireRate: 1.2, name: "Battle Mech" },
-            5: { health: 500, speed: 2.2, damage: 85, size: 85, fireRate: 1.3, name: "Titan Mech" }
+            2: { health: 240, speed: 1.9, damage: 50, size: 70, fireRate: 1.0, name: "Assault Mech", rotationSpeed: 0.045 },
+            3: { health: 320, speed: 2.0, damage: 60, size: 75, fireRate: 1.1, name: "Heavy Mech", rotationSpeed: 0.05 },
+            4: { health: 400, speed: 2.1, damage: 70, size: 80, fireRate: 1.2, name: "Battle Mech", rotationSpeed: 0.055 },
+            5: { health: 500, speed: 2.2, damage: 85, size: 85, fireRate: 1.3, name: "Titan Mech", rotationSpeed: 0.06 }
         }
     }
 };
@@ -373,7 +373,7 @@ io.on('connection', (socket) => {
     }
   });
   
-  // NEW: Resource collection
+  // Resource collection
   socket.on('collect-resource', (data) => {
     const player = gameState.players[data.playerId];
     if (!player) return;
@@ -427,8 +427,9 @@ io.on('connection', (socket) => {
     }, 5000);
   });
   
-  // NEW: Vehicle upgrade selection
+  // Vehicle upgrade selection
   socket.on('select-vehicle-upgrade', (data) => {
+    console.log('Vehicle upgrade request:', data);
     const player = gameState.players[data.playerId];
     if (!player) return;
 
@@ -441,6 +442,8 @@ io.on('connection', (socket) => {
     player.health = stats.health;
     player.maxHealth = stats.health;
 
+    console.log(`Player ${player.name} upgraded to ${data.newVehicleType} at level ${data.newLevel}`);
+
     // Notify all clients
     io.emit('vehicle-upgraded', {
         playerId: data.playerId,
@@ -449,7 +452,7 @@ io.on('connection', (socket) => {
     });
   });
   
-  // NEW: Player upgraded
+  // Player upgraded
   socket.on('player-upgraded', (data) => {
     const player = gameState.players[data.id];
     if (player) {
