@@ -38,12 +38,18 @@ function setCanvasSizes() {
 setCanvasSizes();
 window.addEventListener('resize', setCanvasSizes);
 
-// Socket.io connection with better error handling
+// Enhanced Socket.io connection with better error handling
 const socket = io({
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
     timeout: 10000
+});
+
+// Socket event handlers with proper error handling
+socket.on('connect', () => {
+    console.log('Connected to server with ID:', socket.id);
+    playerId = socket.id;
 });
 
 socket.on('connect_error', (error) => {
@@ -87,10 +93,10 @@ let lastUpdateTime = Date.now();
 let fps = 0;
 let frameCount = 0;
 
-// Image cache with better management
+// Image cache
 const imageCache = new Map();
 
-// Enhanced Vehicle System with better balancing
+// Enhanced Vehicle System
 const vehicleSystem = {
     tank: {
         base: { name: "Light Tank", health: 150, damage: 35, speed: 2, rotationSpeed: 0.03, size: 70, fireRate: 1.0 },
@@ -148,7 +154,7 @@ const vehicleSystem = {
     }
 };
 
-// Input handling with better key management
+// Input handling
 const keys = {};
 const mouse = { x: 0, y: 0, clicked: false };
 const touch = {
@@ -187,8 +193,6 @@ canvas.addEventListener('mousemove', (e) => {
 if (isMobile) {
     mobileControls.style.display = 'block';
     
-    let touchStartTime = 0;
-    
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touchEvent = e.touches[0];
@@ -198,7 +202,6 @@ if (isMobile) {
         touch.startY = touchEvent.clientY - rect.top;
         touch.x = touch.startX;
         touch.y = touch.startY;
-        touchStartTime = Date.now();
     });
     
     touchArea.addEventListener('touchmove', (e) => {
@@ -225,14 +228,12 @@ if (isMobile) {
         e.preventDefault();
         mouse.clicked = true;
         fireButton.style.transform = 'scale(0.9)';
-        fireButton.style.boxShadow = '0 0 40px rgba(255, 0, 0, 0.8)';
     });
     
     fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         mouse.clicked = false;
         fireButton.style.transform = 'scale(1)';
-        fireButton.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
     });
     
     // Prevent context menu
@@ -287,10 +288,11 @@ class Vehicle {
         this.turningLeft = false;
         this.turningRight = false;
         
-        // Image loading
+        // Initialize images
+        this.bodyImage = null;
+        this.turretImage = null;
         this.bodyImageLoaded = false;
         this.turretImageLoaded = false;
-        this.loadVehicleImages();
     }
     
     getDefaultColor() {
@@ -303,67 +305,6 @@ class Vehicle {
             mech: '#F44336'
         };
         return colors[this.vehicleType] || '#4CAF50';
-    }
-    
-    loadVehicleImages() {
-        const imagePath = this.getImagePath();
-        
-        if (imageCache.has(imagePath)) {
-            const cached = imageCache.get(imagePath);
-            this.bodyImage = cached.body;
-            this.turretImage = cached.turret;
-            this.bodyImageLoaded = cached.bodyLoaded;
-            this.turretImageLoaded = cached.turretLoaded;
-            return;
-        }
-        
-        this.bodyImage = new Image();
-        this.turretImage = new Image();
-        
-        this.bodyImage.onload = () => {
-            this.bodyImageLoaded = true;
-            if (imageCache.has(imagePath)) {
-                imageCache.get(imagePath).bodyLoaded = true;
-            }
-        };
-        
-        this.bodyImage.onerror = () => {
-            this.bodyImageLoaded = false;
-        };
-        
-        this.turretImage.onload = () => {
-            this.turretImageLoaded = true;
-        };
-        
-        this.turretImage.onerror = () => {
-            this.turretImageLoaded = false;
-        };
-        
-        imageCache.set(imagePath, {
-            body: this.bodyImage,
-            turret: this.turretImage,
-            bodyLoaded: false,
-            turretLoaded: false
-        });
-        
-        // Try to load images (they won't exist, so we'll use colored shapes)
-        this.bodyImage.src = `assets/${imagePath}_body.png`;
-        this.turretImage.src = `assets/${imagePath}_turret.png`;
-    }
-    
-    getImagePath() {
-        const baseTypes = {
-            tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
-            jeep: ['jeep_basic', 'jeep_combat', 'jeep_assault', 'jeep_raider', 'jeep_commando'],
-            apc: ['apc_basic', 'apc_heavy', 'apc_battle', 'apc_assault', 'apc_titan'],
-            artillery: ['artillery_basic', 'artillery_heavy', 'artillery_siege', 'artillery_mobile', 'artillery_super'],
-            helicopter: ['helicopter_basic', 'helicopter_attack', 'helicopter_gunship', 'helicopter_heavy', 'helicopter_elite'],
-            mech: ['mech_basic', 'mech_assault', 'mech_heavy', 'mech_battle', 'mech_titan']
-        };
-        
-        const typeArray = baseTypes[this.vehicleType] || baseTypes.tank;
-        const levelIndex = Math.min(this.level - 1, typeArray.length - 1);
-        return typeArray[levelIndex];
     }
     
     updateStats() {
@@ -400,17 +341,6 @@ class Vehicle {
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
-            
-            const imagePath = this.getImagePath();
-            if (!imageCache.has(imagePath)) {
-                this.loadVehicleImages();
-            } else {
-                const cached = imageCache.get(imagePath);
-                this.bodyImage = cached.body;
-                this.turretImage = cached.turret;
-                this.bodyImageLoaded = cached.bodyLoaded;
-                this.turretImageLoaded = cached.turretLoaded;
-            }
             
             if (this.isPlayer) {
                 this.createLevelUpEffect();
@@ -569,7 +499,7 @@ class Vehicle {
         }
 
         // Send update to server if moved
-        if (moved) {
+        if (moved && this.id) {
             socket.emit('player-update', {
                 id: this.id,
                 x: this.x,
@@ -641,32 +571,13 @@ class Vehicle {
         // Draw vehicle body
         ctx.save();
         ctx.rotate(this.angle);
-        if (this.bodyImageLoaded) {
-            ctx.drawImage(this.bodyImage, -this.width/2, -this.height/2, this.width, this.height);
-        } else {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
-            
-            ctx.fillStyle = '#333';
-            ctx.fillRect(-this.width/4, -this.height/4, this.width/2, this.height/2);
-        }
+        this.drawEnhancedFallbackBody();
         ctx.restore();
         
         // Draw turret
         ctx.save();
         ctx.rotate(this.turretAngle);
-        if (this.turretImageLoaded) {
-            const turretSize = this.width * 0.7;
-            ctx.drawImage(this.turretImage, -turretSize/2, -turretSize/2, turretSize, turretSize);
-        } else {
-            ctx.fillStyle = '#333';
-            ctx.fillRect(0, -3, this.width/2 + 10, 6);
-            
-            ctx.fillStyle = '#555';
-            ctx.beginPath();
-            ctx.arc(0, 0, 8, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        this.drawEnhancedFallbackTurret();
         ctx.restore();
         
         ctx.restore();
@@ -679,6 +590,75 @@ class Vehicle {
         
         if (this.stealth) {
             ctx.restore();
+        }
+    }
+    
+    drawEnhancedFallbackBody() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+        
+        // Add vehicle-type specific details
+        ctx.fillStyle = '#333';
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                // Tank tracks
+                ctx.fillRect(-this.width/2, -this.height/2, this.width * 0.1, this.height);
+                ctx.fillRect(this.width/2 - this.width * 0.1, -this.height/2, this.width * 0.1, this.height);
+                break;
+            case 'jeep':
+                // Jeep wheels
+                ctx.fillRect(-this.width/2, this.height/2 - this.height * 0.2, this.width * 0.15, this.height * 0.2);
+                ctx.fillRect(this.width/2 - this.width * 0.15, this.height/2 - this.height * 0.2, this.width * 0.15, this.height * 0.2);
+                break;
+            case 'apc':
+                // APC armor plates
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(-this.width/3 + i * this.width/3, -this.height/2, this.width/4, this.height);
+                }
+                break;
+            case 'artillery':
+                // Artillery base
+                ctx.fillRect(-this.width/4, -this.height/4, this.width/2, this.height/2);
+                break;
+            case 'helicopter':
+                // Helicopter rotors
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height * 0.1);
+                break;
+            case 'mech':
+                // Mech legs
+                ctx.fillRect(-this.width/3, this.height/2 - this.height * 0.3, this.width/4, this.height * 0.3);
+                ctx.fillRect(this.width/3 - this.width/4, this.height/2 - this.height * 0.3, this.width/4, this.height * 0.3);
+                break;
+        }
+    }
+    
+    drawEnhancedFallbackTurret() {
+        ctx.fillStyle = '#333';
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                ctx.fillRect(0, -3, this.width/2 + 10, 6);
+                ctx.fillStyle = '#555';
+                ctx.beginPath();
+                ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            case 'jeep':
+                ctx.fillRect(0, -2, this.width/2 + 5, 4);
+                break;
+            case 'apc':
+                ctx.fillRect(0, -4, this.width/2 + 8, 8);
+                break;
+            case 'artillery':
+                ctx.fillRect(0, -2, this.width/2 + 15, 4);
+                break;
+            case 'helicopter':
+                ctx.fillRect(-this.width/4, 0, this.width/2, 3);
+                break;
+            case 'mech':
+                ctx.fillRect(0, -this.height/4, this.width/2, this.height/2);
+                break;
         }
     }
     
@@ -1012,11 +992,6 @@ class Explosion {
 }
 
 // Enhanced Socket Event Handlers
-socket.on('connect', () => {
-    playerId = socket.id;
-    console.log('Connected to server with ID:', playerId);
-});
-
 socket.on('game-config', (config) => {
     mapSize = config.mapSize || mapSize;
     document.getElementById('startButton').disabled = false;
@@ -1101,14 +1076,6 @@ function updateVehicleFromData(vehicle, playerData) {
     if (vehicle.level !== playerData.level) {
         vehicle.level = playerData.level;
         vehicle.updateStats();
-        const imagePath = vehicle.getImagePath();
-        if (imageCache.has(imagePath)) {
-            const cached = imageCache.get(imagePath);
-            vehicle.bodyImage = cached.body;
-            vehicle.turretImage = cached.turret;
-            vehicle.bodyImageLoaded = cached.bodyLoaded;
-            vehicle.turretImageLoaded = cached.turretLoaded;
-        }
     }
 }
 
@@ -1129,7 +1096,7 @@ function updateResources(serverResources) {
     });
 }
 
-// Other socket events remain similar but with better error handling
+// Other socket events
 socket.on('leaderboard-update', (updatedLeaderboard) => {
     leaderboard = updatedLeaderboard;
     updateLeaderboard();
@@ -1243,22 +1210,6 @@ socket.on('resource-spawned', (resourceData) => {
         resourceData.type,
         resourceData.value
     ));
-});
-
-socket.on('player-upgraded', (data) => {
-    const upgradedPlayer = players.find(p => p.id === data.playerId);
-    if (upgradedPlayer) {
-        upgradedPlayer.level = data.level;
-        upgradedPlayer.updateStats();
-        const imagePath = upgradedPlayer.getImagePath();
-        if (imageCache.has(imagePath)) {
-            const cached = imageCache.get(imagePath);
-            upgradedPlayer.bodyImage = cached.body;
-            upgradedPlayer.turretImage = cached.turret;
-            upgradedPlayer.bodyImageLoaded = cached.bodyLoaded;
-            upgradedPlayer.turretImageLoaded = cached.turretLoaded;
-        }
-    }
 });
 
 // Enhanced input handling
@@ -1630,12 +1581,6 @@ function drawHUD() {
         ctx.fillStyle = '#4CAF50';
         ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
-    
-    // FPS counter
-    ctx.fillStyle = 'white';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText(`FPS: ${fps}`, canvas.width - 10, 20);
     
     drawExperienceBar();
 }
