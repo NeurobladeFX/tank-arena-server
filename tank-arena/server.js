@@ -7,14 +7,21 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Serve static files from the "public" directory
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
-// Serve assets from the "assets" directory
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
-
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Health check for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    players: Object.keys(gameState.players).length,
+    uptime: process.uptime()
+  });
 });
 
 // Game Configuration
@@ -91,6 +98,7 @@ const gameState = {
 function generateObstacles() {
   const obstacles = [];
   
+  // Large obstacles
   for (let i = 0; i < 50; i++) {
     obstacles.push({
       x: Math.random() * (MAP_SIZE - 200) + 100,
@@ -101,6 +109,7 @@ function generateObstacles() {
     });
   }
   
+  // Very large obstacles
   for (let i = 0; i < 8; i++) {
     obstacles.push({
       x: Math.random() * (MAP_SIZE - 200) + 100,
@@ -111,6 +120,7 @@ function generateObstacles() {
     });
   }
   
+  // Wall-like obstacles
   for (let i = 0; i < 10; i++) {
     const isHorizontal = Math.random() > 0.5;
     if (isHorizontal) {
@@ -138,16 +148,17 @@ function generateObstacles() {
 function generateResources() {
   const resources = [];
   
-  // More XP resources for progressive leveling
+  // XP resources
   for (let i = 0; i < 40; i++) {
     resources.push({
       x: Math.random() * (MAP_SIZE - 100) + 50,
       y: Math.random() * (MAP_SIZE - 100) + 50,
       type: 'experience',
-      value: 25 + Math.floor(Math.random() * 25) // 25-50 XP
+      value: 25 + Math.floor(Math.random() * 25)
     });
   }
   
+  // Health resources
   for (let i = 0; i < 20; i++) {
     resources.push({
       x: Math.random() * (MAP_SIZE - 100) + 50,
@@ -157,6 +168,7 @@ function generateResources() {
     });
   }
   
+  // Ammo resources
   for (let i = 0; i < 15; i++) {
     resources.push({
       x: Math.random() * (MAP_SIZE - 100) + 50,
@@ -179,11 +191,9 @@ function getVehicleStats(vehicleType, level) {
   return vehicle.base;
 }
 
-// Progressive XP calculation
 function calculateXPNeeded(level) {
   return 300 + ((level - 1) * 150);
 }
-
 
 // Game Loop
 const GAME_LOOP_INTERVAL = 1000 / 60;
@@ -277,7 +287,6 @@ function checkCollisions() {
                         
                         delete gameState.players[playerId];
                         io.emit('player-left', playerId);
-
                     }
                     break; 
                 }
@@ -289,7 +298,6 @@ function checkCollisions() {
         }
     }
 }
-
 
 function updateLeaderboard() {
   gameState.leaderboard = Object.values(gameState.players)
@@ -322,7 +330,14 @@ io.on('connection', (socket) => {
     }
     
     const stats = getVehicleStats(playerData.vehicleType, 1);
-    const defaultColor = { tank: '#4CAF50', jeep: '#2196F3', apc: '#FF9800', artillery: '#9C27B0', helicopter: '#00BCD4', mech: '#F44336' };
+    const defaultColor = { 
+      tank: '#4CAF50', 
+      jeep: '#2196F3', 
+      apc: '#FF9800', 
+      artillery: '#9C27B0', 
+      helicopter: '#00BCD4', 
+      mech: '#F44336' 
+    };
     
     gameState.players[socket.id] = {
       id: socket.id,
@@ -362,7 +377,8 @@ io.on('connection', (socket) => {
       gameState.bullets.push({
         ...bulletData,
         damage: stats.damage,
-        speed: 12
+        speed: 12,
+        ownerId: socket.id
       });
     }
   });
@@ -377,7 +393,7 @@ io.on('connection', (socket) => {
         r.type === data.resource.type
     );
 
-    if (resourceIndex === -1) return; // Resource already collected
+    if (resourceIndex === -1) return;
 
     const collectedResource = gameState.resources.splice(resourceIndex, 1)[0];
 
@@ -403,8 +419,13 @@ io.on('connection', (socket) => {
         resource: collectedResource
     });
 
+    // Respawn resource after delay
     setTimeout(() => {
-        const newResource = { ...collectedResource, x: Math.random() * (MAP_SIZE - 100) + 50, y: Math.random() * (MAP_SIZE - 100) + 50 };
+        const newResource = { 
+          ...collectedResource, 
+          x: Math.random() * (MAP_SIZE - 100) + 50, 
+          y: Math.random() * (MAP_SIZE - 100) + 50 
+        };
         gameState.resources.push(newResource);
         io.emit('resource-spawned', newResource);
     }, 5000);
@@ -417,7 +438,7 @@ io.on('connection', (socket) => {
     player.vehicleType = data.newVehicleType;
     const stats = getVehicleStats(player.vehicleType, player.level);
     player.maxHealth = stats.health;
-    player.health = stats.health; // Full heal on upgrade
+    player.health = stats.health;
 
     io.emit('vehicle-upgraded', {
         playerId: data.playerId,
@@ -439,4 +460,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
 });
-
