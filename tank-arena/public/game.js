@@ -536,7 +536,7 @@ class Vehicle {
         this.isPlayer = isPlayer;
         this.color = color || this.getDefaultColor();
         this.cooldown = 0;
-        this.id = id;
+        this.id = id; // This should be the socket.id from the server
         this.name = name;
         this.kills = 0;
         this.score = 0;
@@ -557,10 +557,12 @@ class Vehicle {
         this.loadVehicleImages();
         
         console.log(`✅ Vehicle created successfully:`, {
+            id: this.id,
             displayName: this.displayName,
             health: this.health,
             position: [this.x, this.y],
-            size: this.width
+            size: this.width,
+            isPlayer: this.isPlayer
         });
     }
 
@@ -1161,12 +1163,16 @@ socket.on('game-state', (gameState) => {
     });
 
     const receivedPlayers = {};
+    
+    // First, process all players from server
     Object.values(gameState.players).forEach(playerData => {
         receivedPlayers[playerData.id] = true;
+        
+        // Handle local player (you)
         if (playerData.id === playerId) {
+            console.log('👤 Processing local player data from server');
             if (player) {
-                // Update player stats from server
-                console.log('👤 Updating local player stats from server');
+                // Update player stats from server but keep client position for smooth movement
                 player.health = playerData.health;
                 player.kills = playerData.kills;
                 player.score = playerData.score;
@@ -1184,47 +1190,69 @@ socket.on('game-state', (gameState) => {
                 scoreDisplay.textContent = player.score;
                 levelDisplay.textContent = player.level;
             } else {
-                console.error('❌ Server sent player data but local player is null!');
+                console.error('❌ Server sent player data but local player is null! Creating now...');
+                // Emergency creation if player doesn't exist
+                player = new Vehicle(
+                    playerData.x,
+                    playerData.y,
+                    true,
+                    playerData.id,
+                    playerData.vehicleType,
+                    playerData.color,
+                    playerData.name
+                );
+                players.push(player);
             }
-            return;
-        }
+        } else {
+            // Handle remote players
+            let vehicle = players.find(p => p && p.id === playerData.id);
+            if (!vehicle) {
+                console.log(`👥 Creating new remote player: ${playerData.name}`);
+                vehicle = new Vehicle(
+                    playerData.x,
+                    playerData.y,
+                    false,
+                    playerData.id,
+                    playerData.vehicleType,
+                    playerData.color,
+                    playerData.name
+                );
+                players.push(vehicle);
+            }
 
-        let vehicle = players.find(p => p && p.id === playerData.id);
-        if (!vehicle) {
-            console.log(`👥 Creating new remote player: ${playerData.name}`);
-            vehicle = new Vehicle(
-                playerData.x,
-                playerData.y,
-                false,
-                playerData.id,
-                playerData.vehicleType,
-                playerData.color,
-                playerData.name
-            );
-            players.push(vehicle);
-        }
+            // Interpolate movement for remote players
+            vehicle.x += (playerData.x - vehicle.x) * 0.3;
+            vehicle.y += (playerData.y - vehicle.y) * 0.3;
+            vehicle.angle = playerData.angle;
+            vehicle.turretAngle = playerData.turretAngle;
+            
+            vehicle.health = playerData.health;
+            vehicle.kills = playerData.kills;
+            vehicle.score = playerData.score;
+            vehicle.experience = playerData.experience;
 
-        // Interpolate movement
-        vehicle.x += (playerData.x - vehicle.x) * 0.3;
-        vehicle.y += (playerData.y - vehicle.y) * 0.3;
-        vehicle.angle = playerData.angle;
-        vehicle.turretAngle = playerData.turretAngle;
-        
-        vehicle.health = playerData.health;
-        vehicle.kills = playerData.kills;
-        vehicle.score = playerData.score;
-        vehicle.experience = playerData.experience;
-
-        if (vehicle.level !== playerData.level) {
-            vehicle.level = playerData.level;
-            vehicle.updateStats();
-            vehicle.loadVehicleImages();
+            if (vehicle.level !== playerData.level) {
+                vehicle.level = playerData.level;
+                vehicle.updateStats();
+                vehicle.loadVehicleImages();
+            }
         }
     });
 
-    players = players.filter(p => p && receivedPlayers[p.id]);
+    // Remove players that left the game
+    players = players.filter(p => {
+        if (p && receivedPlayers[p.id]) {
+            return true;
+        } else {
+            console.log('🗑️ Removing player that left:', p?.id);
+            return false;
+        }
+    });
+    
     console.log(`👥 Total players after update: ${players.length}`);
+    console.log('Local player in array:', players.find(p => p.isPlayer));
 
+    // Update bullets, obstacles, resources
     bullets = gameState.bullets.map(bulletData => {
         return new Bullet(
             bulletData.x,
@@ -1499,17 +1527,27 @@ function initGame() {
     startTime = Date.now();
     console.log('🔄 Game state reset');
 
+    // Create player at center of map
+    const startX = mapSize / 2;
+    const startY = mapSize / 2;
+    
+    console.log('🚗 Creating player vehicle...');
     player = new Vehicle(
-        mapSize / 2,
-        mapSize / 2,
-        true,
+        startX,
+        startY,
+        true, // isPlayer
         playerId,
         selectedVehicle,
-        null,
+        null, // color (will use default)
         playerName
     );
+    
+    // CRITICAL FIX: Add player to players array immediately
     players.push(player);
-    console.log('✅ Player vehicle created and added to players array');
+    console.log('✅ Player vehicle created and added to players array. Players count:', players.length);
+    console.log('Player object:', player);
+    console.log('Player position:', player.x, player.y);
+    console.log('Player ID:', player.id);
 
     console.log('📡 Sending join-game to server...');
     socket.emit('join-game', {
