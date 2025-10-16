@@ -12,7 +12,11 @@ const io = socketIo(server, {
   }
 });
 
+// Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve assets if they exist
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -92,6 +96,12 @@ const gameState = {
 function generateObstacles() {
   const obstacles = [];
   
+  // Border walls
+  obstacles.push({ x: 0, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
+  obstacles.push({ x: MAP_SIZE, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
+  obstacles.push({ x: MAP_SIZE/2, y: 0, width: MAP_SIZE, height: 50, type: 'wall' });
+  obstacles.push({ x: MAP_SIZE/2, y: MAP_SIZE, width: MAP_SIZE, height: 50, type: 'wall' });
+
   for (let i = 0; i < 50; i++) {
     obstacles.push({
       x: Math.random() * (MAP_SIZE - 200) + 100,
@@ -180,9 +190,9 @@ function getVehicleStats(vehicleType, level) {
   return vehicle.base;
 }
 
-// Progressive XP calculation
+// Progressive XP calculation - Made more balanced
 function calculateXPNeeded(level) {
-  return 300 + (level * 150); // Level 1: 450, Level 2: 600, Level 3: 750, etc.
+  return Math.floor(100 * Math.pow(1.5, level - 1)); // 100, 150, 225, 337, 506
 }
 
 // Game Loop
@@ -226,7 +236,7 @@ function checkCollisions() {
     Object.keys(gameState.players).forEach(playerId => {
       const player = gameState.players[playerId];
       
-      if (playerId !== bullet.ownerId) {
+      if (playerId !== bullet.ownerId && player.health > 0) {
         const dx = bullet.x - player.x;
         const dy = bullet.y - player.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -360,16 +370,14 @@ io.on('connection', (socket) => {
     const player = gameState.players[bulletData.ownerId];
     if (player) {
       const stats = getVehicleStats(player.vehicleType, player.level);
-      gameState.bullets.push({
+      const bullet = {
         ...bulletData,
         damage: stats.damage,
         speed: 8
-      });
+      };
+      gameState.bullets.push(bullet);
       
-      io.emit('bullet-created', {
-        ...bulletData,
-        damage: stats.damage
-      });
+      io.emit('bullet-created', bullet);
     }
   });
   
@@ -379,11 +387,15 @@ io.on('connection', (socket) => {
     if (!player) return;
 
     // Remove the collected resource
-    gameState.resources = gameState.resources.filter(r => 
-        !(Math.abs(r.x - data.resource.x) < 5 && 
-          Math.abs(r.y - data.resource.y) < 5 && 
-          r.type === data.resource.type)
+    const resourceIndex = gameState.resources.findIndex(r => 
+        Math.abs(r.x - data.resource.x) < 5 && 
+        Math.abs(r.y - data.resource.y) < 5 && 
+        r.type === data.resource.type
     );
+    
+    if (resourceIndex !== -1) {
+      gameState.resources.splice(resourceIndex, 1);
+    }
 
     // Apply resource effects
     if (data.resource.type === 'health') {
@@ -478,9 +490,24 @@ io.on('connection', (socket) => {
   });
 });
 
+// Error handling for server
+server.on('error', (error) => {
+  console.error('Server error:', error);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 startGameLoop();
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
+  console.log(`Game Map Size: ${MAP_SIZE}x${MAP_SIZE}`);
+  console.log(`Max Players: ${MAX_PLAYERS}`);
 });
