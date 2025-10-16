@@ -63,6 +63,9 @@ let camera = { x: 0, y: 0 };
 let mapSize = 4000;
 let startTime = Date.now();
 
+// Image cache to prevent multiple loading attempts
+const imageCache = new Map();
+
 // Enhanced Vehicle System with 5 levels and 6 vehicles
 const vehicleSystem = {
     tank: {
@@ -241,7 +244,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with improved steering
+// Vehicle class with improved steering and image loading
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -271,9 +274,7 @@ class Vehicle {
         this.turningLeft = false;
         this.turningRight = false;
         
-        // Load vehicle images
-        this.bodyImage = new Image();
-        this.turretImage = new Image();
+        // Image loading - use cached images or colored shapes
         this.bodyImageLoaded = false;
         this.turretImageLoaded = false;
         this.loadVehicleImages();
@@ -294,27 +295,68 @@ class Vehicle {
     loadVehicleImages() {
         const imagePath = this.getImagePath();
         
-        // Try to load images, if they fail, use fallback colors
+        // Check if images are already cached
+        if (imageCache.has(imagePath)) {
+            const cached = imageCache.get(imagePath);
+            this.bodyImage = cached.body;
+            this.turretImage = cached.turret;
+            this.bodyImageLoaded = cached.bodyLoaded;
+            this.turretImageLoaded = cached.turretLoaded;
+            return;
+        }
+        
+        // Create new image objects
+        this.bodyImage = new Image();
+        this.turretImage = new Image();
+        
+        // Set up loading handlers
         this.bodyImage.onload = () => {
             this.bodyImageLoaded = true;
+            // Update cache
+            if (imageCache.has(imagePath)) {
+                const cached = imageCache.get(imagePath);
+                cached.bodyLoaded = true;
+            }
         };
+        
         this.bodyImage.onerror = () => {
             this.bodyImageLoaded = false;
-            console.log(`Body image not found for ${this.vehicleType}, using colored shapes`);
+            // Update cache
+            if (imageCache.has(imagePath)) {
+                const cached = imageCache.get(imagePath);
+                cached.bodyLoaded = false;
+            }
         };
         
         this.turretImage.onload = () => {
             this.turretImageLoaded = true;
-        };
-        this.turretImage.onerror = () => {
-            this.turretImageLoaded = false;
-            console.log(`Turret image not found for ${this.vehicleType}, using colored shapes`);
+            // Update cache
+            if (imageCache.has(imagePath)) {
+                const cached = imageCache.get(imagePath);
+                cached.turretLoaded = true;
+            }
         };
         
-        // Set image sources
+        this.turretImage.onerror = () => {
+            this.turretImageLoaded = false;
+            // Update cache
+            if (imageCache.has(imagePath)) {
+                const cached = imageCache.get(imagePath);
+                cached.turretLoaded = false;
+            }
+        };
+        
+        // Cache the images before setting sources
+        imageCache.set(imagePath, {
+            body: this.bodyImage,
+            turret: this.turretImage,
+            bodyLoaded: false,
+            turretLoaded: false
+        });
+        
+        // Try to load images (they won't exist, so we'll use colored shapes)
         this.bodyImage.src = `assets/${imagePath}_body.png`;
         this.turretImage.src = `assets/${imagePath}_turret.png`;
-        console.log(`Attempting to load images for ${this.vehicleType} from assets/${imagePath}_body.png and assets/${imagePath}_turret.png`);
     }
     
     getImagePath() {
@@ -348,7 +390,7 @@ class Vehicle {
         this.width = stats.size;
         this.height = stats.size;
         this.speed = stats.speed;
-        this.rotationSpeed = stats.rotationSpeed; // Reduced steering sensitivity
+        this.rotationSpeed = stats.rotationSpeed;
         this.maxHealth = stats.health;
         this.damage = stats.damage;
         this.fireRate = stats.fireRate;
@@ -367,7 +409,19 @@ class Vehicle {
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
-            this.loadVehicleImages(); // Reload images for new level
+            
+            // Only reload images if they're not already cached
+            const imagePath = this.getImagePath();
+            if (!imageCache.has(imagePath)) {
+                this.loadVehicleImages();
+            } else {
+                // Use cached images
+                const cached = imageCache.get(imagePath);
+                this.bodyImage = cached.body;
+                this.turretImage = cached.turret;
+                this.bodyImageLoaded = cached.bodyLoaded;
+                this.turretImageLoaded = cached.turretLoaded;
+            }
             
             // Level up effect
             if (this.isPlayer) {
@@ -474,7 +528,7 @@ class Vehicle {
                     moved = true;
                 }
                 if (this.movingBackward) {
-                    this.x -= Math.cos(this.angle) * this.speed * 0.7; // Slower when moving backward
+                    this.x -= Math.cos(this.angle) * this.speed * 0.7;
                     this.y -= Math.sin(this.angle) * this.speed * 0.7;
                     moved = true;
                 }
@@ -499,12 +553,12 @@ class Vehicle {
                     
                     // Use X for rotation, Y for movement with reduced sensitivity
                     if (Math.abs(dx) > 0.05) {
-                        this.angle += dx * this.rotationSpeed * 8; // Reduced from 10 to 8
+                        this.angle += dx * this.rotationSpeed * 8;
                         moved = true;
                     }
                     
                     if (Math.abs(dy) > 0.05) {
-                        this.x += Math.cos(this.angle) * dy * this.speed * 8; // Reduced from 10 to 8
+                        this.x += Math.cos(this.angle) * dy * this.speed * 8;
                         this.y += Math.sin(this.angle) * dy * this.speed * 8;
                         moved = true;
                     }
@@ -598,6 +652,10 @@ class Vehicle {
             // Fallback to colored rectangle
             ctx.fillStyle = this.color;
             ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+            
+            // Add some details to make vehicles distinguishable
+            ctx.fillStyle = '#333';
+            ctx.fillRect(-this.width/4, -this.height/4, this.width/2, this.height/2);
         }
         ctx.restore();
         
@@ -611,6 +669,12 @@ class Vehicle {
             // Fallback to simple turret
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -3, this.width/2 + 10, 6);
+            
+            // Turret base
+            ctx.fillStyle = '#555';
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fill();
         }
         ctx.restore();
         
@@ -862,7 +926,7 @@ class Resource {
     }
 }
 
-// FIXED Explosion class
+// Explosion class
 class Explosion {
     constructor(x, y, size, color = null) {
         this.x = x;
@@ -1013,7 +1077,15 @@ socket.on('game-state', (gameState) => {
         if (vehicle.level !== playerData.level) {
             vehicle.level = playerData.level;
             vehicle.updateStats();
-            vehicle.loadVehicleImages();
+            // Don't reload images here to prevent console spam
+            const imagePath = vehicle.getImagePath();
+            if (imageCache.has(imagePath)) {
+                const cached = imageCache.get(imagePath);
+                vehicle.bodyImage = cached.body;
+                vehicle.turretImage = cached.turret;
+                vehicle.bodyImageLoaded = cached.bodyLoaded;
+                vehicle.turretImageLoaded = cached.turretLoaded;
+            }
         }
         
         return vehicle;
@@ -1172,21 +1244,27 @@ socket.on('player-upgraded', (data) => {
     if (upgradedPlayer) {
         upgradedPlayer.level = data.level;
         upgradedPlayer.updateStats();
-        upgradedPlayer.loadVehicleImages();
+        // Use cached images instead of reloading
+        const imagePath = upgradedPlayer.getImagePath();
+        if (imageCache.has(imagePath)) {
+            const cached = imageCache.get(imagePath);
+            upgradedPlayer.bodyImage = cached.body;
+            upgradedPlayer.turretImage = cached.turret;
+            upgradedPlayer.bodyImageLoaded = cached.bodyLoaded;
+            upgradedPlayer.turretImageLoaded = cached.turretLoaded;
+        }
     }
 });
 
-// FIXED: Handle vehicle upgrade selection
+// Handle vehicle upgrade selection
 socket.on('show-upgrade-screen', (data) => {
-    console.log('Received upgrade screen request:', data);
     if (data.playerId === playerId) {
         showUpgradeSelection(data.nextLevel);
     }
 });
 
-// FIXED: Handle successful vehicle upgrade
+// Handle successful vehicle upgrade
 socket.on('vehicle-upgraded', (data) => {
-    console.log('Vehicle upgraded:', data);
     if (data.playerId === playerId && player) {
         player.vehicleType = data.newVehicleType;
         player.level = data.newLevel;
@@ -1206,10 +1284,8 @@ socket.on('vehicle-upgraded', (data) => {
     }
 });
 
-// FIXED: Show upgrade selection screen
+// Show upgrade selection screen
 function showUpgradeSelection(nextLevel) {
-    console.log('Showing upgrade screen for level', nextLevel);
-    
     // Create upgrade screen
     const upgradeScreen = document.createElement('div');
     upgradeScreen.id = 'upgradeScreen';
@@ -1350,7 +1426,6 @@ function showUpgradeSelection(nextLevel) {
             option.style.background = 'rgba(255, 215, 0, 0.2)';
             option.style.transform = 'translateY(-5px)';
             selectedVehicle = option.dataset.vehicle;
-            console.log('Selected vehicle:', selectedVehicle);
         });
     });
     
@@ -1364,7 +1439,6 @@ function showUpgradeSelection(nextLevel) {
     
     // Handle confirmation
     document.getElementById('confirmUpgrade').addEventListener('click', () => {
-        console.log('Confirming upgrade to:', selectedVehicle, 'at level:', nextLevel);
         socket.emit('select-vehicle-upgrade', {
             playerId: playerId,
             newVehicleType: selectedVehicle,
@@ -1824,4 +1898,3 @@ setTimeout(() => {
         document.getElementById('startButton').disabled = false;
     }
 }, 3000);
-
