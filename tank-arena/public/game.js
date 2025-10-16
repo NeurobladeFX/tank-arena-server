@@ -314,6 +314,7 @@ class Vehicle {
         // Set image sources
         this.bodyImage.src = `assets/${imagePath}_body.png`;
         this.turretImage.src = `assets/${imagePath}_turret.png`;
+        console.log(`Attempting to load images for ${this.vehicleType} from assets/${imagePath}_body.png and assets/${imagePath}_turret.png`);
     }
     
     getImagePath() {
@@ -1823,3 +1824,4 @@ setTimeout(() => {
         document.getElementById('startButton').disabled = false;
     }
 }, 3000);
+
