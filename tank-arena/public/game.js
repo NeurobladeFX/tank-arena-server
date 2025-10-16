@@ -1350,36 +1350,57 @@ function initGame() {
     const nameInput = document.getElementById('playerNameInput');
     playerName = nameInput.value.trim().slice(0, 15) || "Soldier" + Math.floor(Math.random() * 1000);
     
+    console.log('=== INIT GAME DEBUG ===');
+    console.log('Player Name:', playerName);
+    console.log('Selected Vehicle:', selectedVehicle);
+    console.log('Player ID:', playerId);
+    
     // Reset game state
     players = [];
     bullets = [];
     explosions = [];
     startTime = Date.now();
 
+    // Create player with explicit parameters
     player = new Vehicle(
-        mapSize / 2,
-        mapSize / 2,
-        true,
-        playerId,
-        selectedVehicle,
-        null,
-        playerName
+        mapSize / 2,  // x position
+        mapSize / 2,  // y position
+        true,         // isPlayer
+        playerId,     // id
+        selectedVehicle, // vehicleType
+        null,         // color (will use default)
+        playerName    // name
     );
+    
+    console.log('Player object created:', player);
+    console.log('Player stats - health:', player.health, 'position:', player.x, player.y);
+    
     players.push(player);
 
-    socket.emit('join-game', {
-        name: playerName,
-        vehicleType: selectedVehicle,
-    });
+    // Send join game with error handling
+    try {
+        socket.emit('join-game', {
+            name: playerName,
+            vehicleType: selectedVehicle,
+        });
+        console.log('Join game event sent');
+    } catch (error) {
+        console.error('Error sending join-game:', error);
+    }
 
+    // Update UI
     healthDisplay.textContent = Math.ceil(player.health);
     killsDisplay.textContent = player.kills;
     scoreDisplay.textContent = player.score;
     levelDisplay.textContent = player.level;
     vehicleNameDisplay.textContent = player.displayName;
 
+    // Set camera
     camera.x = player.x - canvas.width / 2;
     camera.y = player.y - canvas.height / 2;
+    
+    console.log('Camera set to:', camera.x, camera.y);
+    console.log('=== INIT GAME COMPLETE ===');
 }
 
 function updateLeaderboard() {
@@ -1590,6 +1611,9 @@ function showGameOver() {
 // Game loop
 function gameLoop(timestamp) {
     if (!gameRunning) return;
+
+    // DEBUG: Check if game loop is running and player exists
+    console.log('Game loop running, player exists:', !!player);
 
     updateCamera();
 
