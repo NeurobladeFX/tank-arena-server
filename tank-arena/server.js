@@ -5,18 +5,13 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+const io = socketIo(server);
 
-// Serve static files from public directory
+// Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve assets if they exist
+// Serve assets from the "assets" directory
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -96,12 +91,6 @@ const gameState = {
 function generateObstacles() {
   const obstacles = [];
   
-  // Border walls
-  obstacles.push({ x: 0, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE, y: MAP_SIZE/2, width: 50, height: MAP_SIZE, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE/2, y: 0, width: MAP_SIZE, height: 50, type: 'wall' });
-  obstacles.push({ x: MAP_SIZE/2, y: MAP_SIZE, width: MAP_SIZE, height: 50, type: 'wall' });
-
   for (let i = 0; i < 50; i++) {
     obstacles.push({
       x: Math.random() * (MAP_SIZE - 200) + 100,
@@ -190,10 +179,11 @@ function getVehicleStats(vehicleType, level) {
   return vehicle.base;
 }
 
-// Progressive XP calculation - Made more balanced
+// Progressive XP calculation
 function calculateXPNeeded(level) {
-  return Math.floor(100 * Math.pow(1.5, level - 1)); // 100, 150, 225, 337, 506
+  return 300 + ((level - 1) * 150);
 }
+
 
 // Game Loop
 const GAME_LOOP_INTERVAL = 1000 / 60;
@@ -203,100 +193,103 @@ function startGameLoop() {
   gameLoop = setInterval(() => {
     updateGameState();
     io.emit('game-state', gameState);
-    updateLeaderboard();
   }, GAME_LOOP_INTERVAL);
 }
 
 function updateGameState() {
   // Update bullets
-  gameState.bullets = gameState.bullets.filter(bullet => {
+  for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+    const bullet = gameState.bullets[i];
     bullet.x += Math.cos(bullet.angle) * bullet.speed;
     bullet.y += Math.sin(bullet.angle) * bullet.speed;
     
-    // Remove bullets that hit obstacles or go out of bounds
+    // Remove bullets that go out of bounds
+    if (bullet.x < 0 || bullet.x > MAP_SIZE || bullet.y < 0 || bullet.y > MAP_SIZE) {
+        gameState.bullets.splice(i, 1);
+        continue;
+    }
+    
+    // Remove bullets that hit obstacles
     const hitObstacle = gameState.obstacles.some(obstacle => {
       return bullet.x > obstacle.x - obstacle.width/2 && 
              bullet.x < obstacle.x + obstacle.width/2 &&
              bullet.y > obstacle.y - obstacle.height/2 && 
              bullet.y < obstacle.y + obstacle.height/2;
     });
-    
-    return !hitObstacle && 
-           bullet.x > 0 && bullet.x < MAP_SIZE && 
-           bullet.y > 0 && bullet.y < MAP_SIZE;
-  });
+
+    if (hitObstacle) {
+        gameState.bullets.splice(i, 1);
+    }
+  }
   
   checkCollisions();
+  updateLeaderboard();
 }
 
 function checkCollisions() {
-  gameState.bullets = gameState.bullets.filter(bullet => {
-    let hit = false;
-    
-    Object.keys(gameState.players).forEach(playerId => {
-      const player = gameState.players[playerId];
-      
-      if (playerId !== bullet.ownerId && player.health > 0) {
-        const dx = bullet.x - player.x;
-        const dy = bullet.y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const playerSize = getVehicleStats(player.vehicleType, player.level).size;
-        
-        if (distance < playerSize) {
-          player.health -= bullet.damage;
-          hit = true;
-          
-          io.emit('player-hit', {
-            playerId: playerId,
-            newHealth: player.health,
-            x: bullet.x,
-            y: bullet.y
-          });
-          
-          if (player.health <= 0) {
-            if (gameState.players[bullet.ownerId]) {
-              const killer = gameState.players[bullet.ownerId];
-              killer.kills++;
-              killer.score += 100;
-              killer.experience += 50;
-              
-              // Check for level up with progressive XP
-              const xpNeeded = calculateXPNeeded(killer.level);
-              if (killer.experience >= xpNeeded && killer.level < 5) {
-                killer.level++;
-                killer.experience = killer.experience - xpNeeded; // Carry over excess XP
-                
-                // Show upgrade screen
-                io.to(bullet.ownerId).emit('show-upgrade-screen', {
-                  playerId: bullet.ownerId,
-                  currentLevel: killer.level - 1,
-                  nextLevel: killer.level
-                });
-              }
-              
-              io.emit('player-killed', {
-                killerId: bullet.ownerId,
-                victimId: playerId
-              });
+    for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+        const bullet = gameState.bullets[i];
+        let hit = false;
+
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+
+            if (playerId !== bullet.ownerId) {
+                const dx = bullet.x - player.x;
+                const dy = bullet.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const playerSize = getVehicleStats(player.vehicleType, player.level).size / 2;
+
+                if (distance < playerSize) {
+                    player.health -= bullet.damage;
+                    hit = true;
+
+                    io.emit('player-hit', {
+                        playerId: playerId,
+                        newHealth: player.health,
+                        x: bullet.x,
+                        y: bullet.y
+                    });
+
+                    if (player.health <= 0) {
+                        if (gameState.players[bullet.ownerId]) {
+                            const killer = gameState.players[bullet.ownerId];
+                            killer.kills++;
+                            killer.score += 100;
+                            killer.experience += 50;
+
+                            const xpNeeded = calculateXPNeeded(killer.level);
+                            if (killer.experience >= xpNeeded && killer.level < 5) {
+                                killer.level++;
+                                killer.experience -= xpNeeded; 
+                                io.to(bullet.ownerId).emit('show-upgrade-screen', {
+                                    playerId: bullet.ownerId,
+                                    currentLevel: killer.level - 1,
+                                    nextLevel: killer.level
+                                });
+                            }
+
+                            io.emit('player-killed', {
+                                killerId: bullet.ownerId,
+                                victimId: playerId
+                            });
+                        }
+                        
+                        delete gameState.players[playerId];
+                        io.emit('player-left', playerId);
+
+                    }
+                    break; 
+                }
             }
-            
-            // Respawn player after 3 seconds
-            setTimeout(() => {
-              if (gameState.players[playerId]) {
-                const stats = getVehicleStats(gameState.players[playerId].vehicleType, gameState.players[playerId].level);
-                gameState.players[playerId].health = stats.health;
-                gameState.players[playerId].x = Math.random() * (MAP_SIZE - 200) + 100;
-                gameState.players[playerId].y = Math.random() * (MAP_SIZE - 200) + 100;
-              }
-            }, 3000);
-          }
         }
-      }
-    });
-    
-    return !hit;
-  });
+
+        if (hit) {
+            gameState.bullets.splice(i, 1);
+        }
+    }
 }
+
 
 function updateLeaderboard() {
   gameState.leaderboard = Object.values(gameState.players)
@@ -320,10 +313,7 @@ io.on('connection', (socket) => {
   
   socket.emit('game-config', {
     mapSize: MAP_SIZE,
-    vehicleSystem: VEHICLE_SYSTEM
   });
-  
-  socket.emit('game-state', gameState);
   
   socket.on('join-game', (playerData) => {
     if (Object.keys(gameState.players).length >= MAX_PLAYERS) {
@@ -332,16 +322,17 @@ io.on('connection', (socket) => {
     }
     
     const stats = getVehicleStats(playerData.vehicleType, 1);
+    const defaultColor = { tank: '#4CAF50', jeep: '#2196F3', apc: '#FF9800', artillery: '#9C27B0', helicopter: '#00BCD4', mech: '#F44336' };
     
-    gameState.players[playerData.id] = {
-      id: playerData.id,
+    gameState.players[socket.id] = {
+      id: socket.id,
       x: Math.random() * (MAP_SIZE - 200) + 100,
       y: Math.random() * (MAP_SIZE - 200) + 100,
       angle: 0,
       turretAngle: 0,
       health: stats.health,
       maxHealth: stats.health,
-      color: playerData.color,
+      color: defaultColor[playerData.vehicleType] || '#4CAF50',
       name: playerData.name,
       vehicleType: playerData.vehicleType,
       kills: 0,
@@ -350,139 +341,91 @@ io.on('connection', (socket) => {
       level: 1
     };
     
-    console.log(`Player ${playerData.name} joined as ${playerData.vehicleType}`);
-    io.emit('player-joined', gameState.players[playerData.id]);
+    socket.emit('game-state', gameState);
+    io.emit('player-joined', gameState.players[socket.id]);
   });
   
   socket.on('player-update', (playerData) => {
-    if (gameState.players[playerData.id]) {
-      gameState.players[playerData.id].x = playerData.x;
-      gameState.players[playerData.id].y = playerData.y;
-      gameState.players[playerData.id].angle = playerData.angle;
-      gameState.players[playerData.id].turretAngle = playerData.turretAngle;
-      if (playerData.level) {
-        gameState.players[playerData.id].level = playerData.level;
-      }
+    const player = gameState.players[socket.id];
+    if (player) {
+      player.x = playerData.x;
+      player.y = playerData.y;
+      player.angle = playerData.angle;
+      player.turretAngle = playerData.turretAngle;
     }
   });
   
   socket.on('bullet-fired', (bulletData) => {
-    const player = gameState.players[bulletData.ownerId];
+    const player = gameState.players[socket.id];
     if (player) {
       const stats = getVehicleStats(player.vehicleType, player.level);
-      const bullet = {
+      gameState.bullets.push({
         ...bulletData,
         damage: stats.damage,
-        speed: 8
-      };
-      gameState.bullets.push(bullet);
-      
-      io.emit('bullet-created', bullet);
+        speed: 12
+      });
     }
   });
   
-  // Resource collection
   socket.on('collect-resource', (data) => {
     const player = gameState.players[data.playerId];
     if (!player) return;
 
-    // Remove the collected resource
-    const resourceIndex = gameState.resources.findIndex(r => 
-        Math.abs(r.x - data.resource.x) < 5 && 
-        Math.abs(r.y - data.resource.y) < 5 && 
+    let resourceIndex = gameState.resources.findIndex(r => 
+        Math.abs(r.x - data.resource.x) < 1 && 
+        Math.abs(r.y - data.resource.y) < 1 && 
         r.type === data.resource.type
     );
-    
-    if (resourceIndex !== -1) {
-      gameState.resources.splice(resourceIndex, 1);
-    }
 
-    // Apply resource effects
-    if (data.resource.type === 'health') {
-        player.health = Math.min(player.maxHealth, player.health + data.resource.value);
-    } else if (data.resource.type === 'experience') {
-        // Award XP and score
-        player.experience += data.resource.value;
-        player.score += data.resource.value;
+    if (resourceIndex === -1) return; // Resource already collected
+
+    const collectedResource = gameState.resources.splice(resourceIndex, 1)[0];
+
+    if (collectedResource.type === 'health') {
+        player.health = Math.min(player.maxHealth, player.health + collectedResource.value);
+    } else if (collectedResource.type === 'experience') {
+        player.experience += collectedResource.value;
+        player.score += 20;
         
-        // Check for level up with progressive requirements
         const xpNeeded = calculateXPNeeded(player.level);
         if (player.experience >= xpNeeded && player.level < 5) {
-            // Level up and show upgrade screen
             player.level++;
-            player.experience = player.experience - xpNeeded;
-            
+            player.experience -= xpNeeded;
             io.to(data.playerId).emit('show-upgrade-screen', {
                 playerId: data.playerId,
-                currentLevel: player.level - 1,
                 nextLevel: player.level
             });
         }
     }
 
-    // Notify all clients
     io.emit('resource-collected', {
         playerId: data.playerId,
-        resource: data.resource
+        resource: collectedResource
     });
 
-    // Spawn new resource after delay
     setTimeout(() => {
-        const newResource = {
-            x: Math.random() * (MAP_SIZE - 100) + 50,
-            y: Math.random() * (MAP_SIZE - 100) + 50,
-            type: data.resource.type,
-            value: data.resource.value
-        };
+        const newResource = { ...collectedResource, x: Math.random() * (MAP_SIZE - 100) + 50, y: Math.random() * (MAP_SIZE - 100) + 50 };
         gameState.resources.push(newResource);
         io.emit('resource-spawned', newResource);
     }, 5000);
   });
   
-  // Vehicle upgrade selection
   socket.on('select-vehicle-upgrade', (data) => {
-    console.log('Vehicle upgrade request:', data);
     const player = gameState.players[data.playerId];
-    if (!player) return;
+    if (!player || player.level !== data.newLevel) return;
 
-    // Update player vehicle and level
     player.vehicleType = data.newVehicleType;
-    player.level = data.newLevel;
-    
-    // Update stats based on new vehicle and level
-    const stats = getVehicleStats(data.newVehicleType, data.newLevel);
-    player.health = stats.health;
+    const stats = getVehicleStats(player.vehicleType, player.level);
     player.maxHealth = stats.health;
+    player.health = stats.health; // Full heal on upgrade
 
-    console.log(`Player ${player.name} upgraded to ${data.newVehicleType} at level ${data.newLevel}`);
-
-    // Notify all clients
     io.emit('vehicle-upgraded', {
         playerId: data.playerId,
-        newVehicleType: data.newVehicleType,
+        newVehicleType: player.vehicleType,
         newLevel: player.level
     });
   });
   
-  // Player upgraded
-  socket.on('player-upgraded', (data) => {
-    const player = gameState.players[data.id];
-    if (player) {
-        player.level = data.level;
-        player.vehicleType = data.vehicleType;
-        
-        const stats = getVehicleStats(data.vehicleType, data.level);
-        player.health = stats.health;
-        player.maxHealth = stats.health;
-        
-        io.emit('player-upgraded', {
-            playerId: data.id,
-            level: data.level,
-            vehicleType: data.vehicleType
-        });
-    }
-  });
-
   socket.on('disconnect', () => {
     console.log('Player disconnected:', socket.id);
     delete gameState.players[socket.id];
@@ -490,24 +433,10 @@ io.on('connection', (socket) => {
   });
 });
 
-// Error handling for server
-server.on('error', (error) => {
-  console.error('Server error:', error);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
 startGameLoop();
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
-  console.log(`Game Map Size: ${MAP_SIZE}x${MAP_SIZE}`);
-  console.log(`Max Players: ${MAX_PLAYERS}`);
 });
+
