@@ -601,69 +601,63 @@ class Vehicle {
         return colors[this.vehicleType] || '#4CAF50';
     }
 
-    loadVehicleImages() {
-        const imagePath = this.getImagePath();
-        console.log(`🖼️ Loading vehicle images for: ${imagePath}`);
+    // In the Vehicle class, update the loadVehicleImages method:
+loadVehicleImages() {
+    const imagePath = this.getImagePath();
+    console.log(`🖼️ Loading vehicle images for: ${imagePath}`);
 
-        // Check cache first
-        if (imageCache.has(imagePath)) {
-            const cached = imageCache.get(imagePath);
-            this.bodyImage = cached.body;
-            this.turretImage = cached.turret;
-            this.bodyImageLoaded = cached.bodyLoaded;
-            this.turretImageLoaded = cached.turretLoaded;
-            return;
-        }
-
-        // Create new images
-        this.bodyImage = new Image();
-        this.turretImage = new Image();
-
-        this.bodyImage.onload = () => {
-            this.bodyImageLoaded = true;
-            console.log(`✅ Body image loaded: /assets/${imagePath}_body.png`);
-            if (imageCache.has(imagePath)) {
-                imageCache.get(imagePath).bodyLoaded = true;
-            }
-        };
-
-        this.bodyImage.onerror = () => {
-            this.bodyImageLoaded = false;
-            console.log(`❌ Failed to load body image: /assets/${imagePath}_body.png - Using colored fallback`);
-            // Create colored fallback
-            this.bodyImage = createVehicleImage(this.width, this.height, this.color);
-            this.bodyImageLoaded = true;
-        };
-
-        this.turretImage.onload = () => {
-            this.turretImageLoaded = true;
-            console.log(`✅ Turret image loaded: /assets/${imagePath}_turret.png`);
-            if (imageCache.has(imagePath)) {
-                imageCache.get(imagePath).turretLoaded = true;
-            }
-        };
-
-        this.turretImage.onerror = () => {
-            this.turretImageLoaded = false;
-            console.log(`❌ Failed to load turret image: /assets/${imagePath}_turret.png - Using colored fallback`);
-            // Create colored fallback
-            this.turretImage = createTurretImage(this.width * 0.7, '#333');
-            this.turretImageLoaded = true;
-        };
-
-        // Cache and load
-        imageCache.set(imagePath, {
-            body: this.bodyImage,
-            turret: this.turretImage,
-            bodyLoaded: false,
-            turretLoaded: false
-        });
-
-        // Load images
-        this.bodyImage.src = `/assets/${imagePath}_body.png`;
-        this.turretImage.src = `/assets/${imagePath}_turret.png`;
+    // Check cache first
+    if (imageCache.has(imagePath)) {
+        const cached = imageCache.get(imagePath);
+        this.bodyImage = cached.body;
+        this.turretImage = cached.turret;
+        this.bodyImageLoaded = cached.bodyLoaded;
+        this.turretImageLoaded = cached.turretLoaded;
+        return;
     }
 
+    // Create new images
+    this.bodyImage = new Image();
+    this.turretImage = new Image();
+
+    this.bodyImage.onload = () => {
+        this.bodyImageLoaded = true;
+        console.log(`✅ Body image loaded: ${imagePath}_body.png`);
+    };
+
+    this.bodyImage.onerror = () => {
+        this.bodyImageLoaded = false;
+        console.log(`❌ Failed to load body image: ${imagePath}_body.png - Using colored fallback`);
+        // Create colored fallback
+        this.bodyImage = createVehicleImage(this.width, this.height, this.color);
+        this.bodyImageLoaded = true;
+    };
+
+    this.turretImage.onload = () => {
+        this.turretImageLoaded = true;
+        console.log(`✅ Turret image loaded: ${imagePath}_turret.png`);
+    };
+
+    this.turretImage.onerror = () => {
+        this.turretImageLoaded = false;
+        console.log(`❌ Failed to load turret image: ${imagePath}_turret.png - Using colored fallback`);
+        // Create colored fallback
+        this.turretImage = createTurretImage(this.width * 0.7, '#333');
+        this.turretImageLoaded = true;
+    };
+
+    // Cache and load
+    imageCache.set(imagePath, {
+        body: this.bodyImage,
+        turret: this.turretImage,
+        bodyLoaded: false,
+        turretLoaded: false
+    });
+
+    // Load images - use relative paths from public folder
+    this.bodyImage.src = `assets/${imagePath}_body.png`;
+    this.turretImage.src = `assets/${imagePath}_turret.png`;
+}
     getImagePath() {
         const baseTypes = {
             tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
