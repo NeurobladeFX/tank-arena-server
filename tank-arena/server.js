@@ -7,13 +7,19 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Serve static files
-app.use(express.static(__dirname));
-app.use('/assets', express.static(path.join(__dirname, 'public')));
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+// Get the correct path to public directory
+const publicPath = path.join(__dirname, 'public');
+console.log('Public path:', publicPath);
 
+// Serve static files from public directory
+app.use(express.static(publicPath));
+app.use('/assets', express.static(path.join(publicPath, 'assets')));
+
+// Routes
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(publicPath, 'index.html');
+  console.log('Serving index.html from:', indexPath);
+  res.sendFile(indexPath);
 });
 
 // Health check for Render
@@ -457,8 +463,9 @@ io.on('connection', (socket) => {
 
 startGameLoop();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
+  console.log('Current directory:', __dirname);
+  console.log('Public directory:', publicPath);
 });
-
