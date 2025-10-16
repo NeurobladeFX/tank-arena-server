@@ -9,6 +9,7 @@ const io = socketIo(server);
 
 // Serve static files
 app.use(express.static(__dirname));
+app.use('/assets', express.static(path.join(__dirname, 'public')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/', (req, res) => {
@@ -460,3 +461,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
 });
+
