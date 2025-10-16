@@ -8,11 +8,11 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Health check for Render
@@ -457,6 +457,6 @@ io.on('connection', (socket) => {
 startGameLoop();
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Military Vehicles IO Server running on port ${PORT}`);
 });
