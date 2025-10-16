@@ -43,6 +43,8 @@ const socket = io();
 
 socket.on('connect_error', (error) => {
     console.error('Connection failed:', error);
+    startButton.disabled = false;
+    startButton.textContent = 'RETRY CONNECTION';
     alert('Failed to connect to game server. Please refresh and try again.');
 });
 
@@ -66,10 +68,22 @@ let camera = {
 let mapSize = 4000;
 let startTime = Date.now();
 
-// Image cache to prevent multiple loading attempts
+// Background image
+const backgroundImage = new Image();
+backgroundImage.src = '/assets/land.jpg';
+let backgroundLoaded = false;
+backgroundImage.onload = () => {
+    backgroundLoaded = true;
+    console.log('Background image loaded');
+};
+backgroundImage.onerror = () => {
+    console.log('Using fallback background (gradient)');
+};
+
+// Vehicle image cache
 const imageCache = new Map();
 
-// Enhanced Vehicle System with 5 levels and 6 vehicles
+// Enhanced Vehicle System
 const vehicleSystem = {
     tank: {
         base: {
@@ -406,8 +420,6 @@ canvas.addEventListener('mousemove', (e) => {
 if (isMobile) {
     mobileControls.style.display = 'block';
 
-    let touchStartTime = 0;
-
     touchArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touchEvent = e.touches[0];
@@ -417,7 +429,6 @@ if (isMobile) {
         touch.startY = touchEvent.clientY - rect.top;
         touch.x = touch.startX;
         touch.y = touch.startY;
-        touchStartTime = Date.now();
     });
 
     touchArea.addEventListener('touchmove', (e) => {
@@ -429,7 +440,7 @@ if (isMobile) {
         touch.x = touchEvent.clientX - rect.left;
         touch.y = touchEvent.clientY - rect.top;
 
-        // Calculate movement direction with reduced sensitivity
+        // Calculate movement direction
         touch.moveX = (touch.x - touch.startX) * 0.015;
         touch.moveY = (touch.y - touch.startY) * 0.015;
     });
@@ -441,11 +452,10 @@ if (isMobile) {
         touch.moveY = 0;
     });
 
-    // Fire button with better touch handling
+    // Fire button
     fireButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         mouse.clicked = true;
-        // Visual feedback
         fireButton.style.transform = 'scale(0.9)';
         fireButton.style.boxShadow = '0 0 40px rgba(255, 0, 0, 0.8)';
     });
@@ -453,32 +463,20 @@ if (isMobile) {
     fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         mouse.clicked = false;
-        // Reset visual feedback
         fireButton.style.transform = 'scale(1)';
         fireButton.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
     });
 
-    // Prevent context menu on long press
-    touchArea.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-    });
-
-    fireButton.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-    });
+    // Prevent context menu
+    touchArea.addEventListener('contextmenu', (e) => e.preventDefault());
+    fireButton.addEventListener('contextmenu', (e) => e.preventDefault());
 } else {
     canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 0) {
-            mouse.clicked = true;
-        }
+        if (e.button === 0) mouse.clicked = true;
     });
 
     canvas.addEventListener('mouseup', (e) => {
-        if (e.button === 0) {
-            mouse.clicked = false;
-        }
+        if (e.button === 0) mouse.clicked = false;
     });
 }
 
@@ -491,7 +489,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with improved steering and image loading
+// Vehicle class
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -521,7 +519,7 @@ class Vehicle {
         this.turningLeft = false;
         this.turningRight = false;
 
-        // Image loading - use cached images or colored shapes
+        // Image loading
         this.bodyImageLoaded = false;
         this.turretImageLoaded = false;
         this.loadVehicleImages();
@@ -542,7 +540,7 @@ class Vehicle {
     loadVehicleImages() {
         const imagePath = this.getImagePath();
 
-        // Check if images are already cached
+        // Check cache first
         if (imageCache.has(imagePath)) {
             const cached = imageCache.get(imagePath);
             this.bodyImage = cached.body;
@@ -552,50 +550,33 @@ class Vehicle {
             return;
         }
 
-        // Create new image objects
+        // Create new images
         this.bodyImage = new Image();
         this.turretImage = new Image();
 
-        // Set up loading handlers
         this.bodyImage.onload = () => {
             this.bodyImageLoaded = true;
-            // Update cache
             if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.bodyLoaded = true;
+                imageCache.get(imagePath).bodyLoaded = true;
             }
         };
 
         this.bodyImage.onerror = () => {
             this.bodyImageLoaded = false;
-             console.error(`Failed to load image: /assets/${imagePath}_body.png`);
-            // Update cache
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.bodyLoaded = false;
-            }
         };
 
         this.turretImage.onload = () => {
             this.turretImageLoaded = true;
-            // Update cache
             if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.turretLoaded = true;
+                imageCache.get(imagePath).turretLoaded = true;
             }
         };
 
         this.turretImage.onerror = () => {
             this.turretImageLoaded = false;
-            console.error(`Failed to load image: /assets/${imagePath}_turret.png`);
-            // Update cache
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.turretLoaded = false;
-            }
         };
 
-        // Cache the images before setting sources
+        // Cache and load
         imageCache.set(imagePath, {
             body: this.bodyImage,
             turret: this.turretImage,
@@ -603,11 +584,10 @@ class Vehicle {
             turretLoaded: false
         });
 
-        // Corrected image paths
+        // Load images (will use fallback if they don't exist)
         this.bodyImage.src = `/assets/${imagePath}_body.png`;
         this.turretImage.src = `/assets/${imagePath}_turret.png`;
     }
-
 
     getImagePath() {
         const baseTypes = {
@@ -646,7 +626,6 @@ class Vehicle {
         this.fireRate = stats.fireRate;
         this.maxCooldown = 60 / this.fireRate;
 
-        // Ensure health doesn't go negative
         if (!this.health || this.health < 0) {
             this.health = this.maxHealth;
         }
@@ -660,12 +639,11 @@ class Vehicle {
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
 
-            // Only reload images if they're not already cached
+            // Reload images for new level
             const imagePath = this.getImagePath();
             if (!imageCache.has(imagePath)) {
                 this.loadVehicleImages();
             } else {
-                // Use cached images
                 const cached = imageCache.get(imagePath);
                 this.bodyImage = cached.body;
                 this.turretImage = cached.turret;
@@ -689,79 +667,17 @@ class Vehicle {
         return false;
     }
 
-    activateSpecialAbility() {
-        if (this.specialAbilityCooldown <= 0) {
-            this.specialAbilityActive = true;
-            this.specialAbilityDuration = 180;
-            this.specialAbilityCooldown = 600;
-
-            switch (this.vehicleType) {
-                case 'tank':
-                    this.damage *= 1.5;
-                    break;
-                case 'jeep':
-                    this.speed *= 1.5;
-                    break;
-                case 'apc':
-                    this.tempShield = this.maxHealth * 0.5;
-                    break;
-                case 'artillery':
-                    this.fireRate *= 2;
-                    this.maxCooldown = 60 / this.fireRate;
-                    break;
-                case 'helicopter':
-                    this.stealth = true;
-                    break;
-                case 'mech':
-                    this.areaDamage = true;
-                    break;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    deactivateSpecialAbility() {
-        this.specialAbilityActive = false;
-
-        switch (this.vehicleType) {
-            case 'tank':
-                this.damage = vehicleSystem[this.vehicleType].upgrades[this.level]?.damage ||
-                    vehicleSystem[this.vehicleType].base.damage;
-                break;
-            case 'jeep':
-                this.speed = vehicleSystem[this.vehicleType].upgrades[this.level]?.speed ||
-                    vehicleSystem[this.vehicleType].base.speed;
-                break;
-            case 'apc':
-                this.tempShield = 0;
-                break;
-            case 'artillery':
-                this.fireRate = vehicleSystem[this.vehicleType].upgrades[this.level]?.fireRate ||
-                    vehicleSystem[this.vehicleType].base.fireRate;
-                this.maxCooldown = 60 / this.fireRate;
-                break;
-            case 'helicopter':
-                this.stealth = false;
-                break;
-            case 'mech':
-                this.areaDamage = false;
-                break;
-        }
-    }
-
     update() {
         if (this.isPlayer) {
             let moved = false;
 
             if (!isMobile) {
-                // PROPER TANK CONTROLS: W/S for forward/backward, A/D for rotation
+                // Desktop controls
                 this.movingForward = keys['w'] || keys['arrowup'];
                 this.movingBackward = keys['s'] || keys['arrowdown'];
                 this.turningLeft = keys['a'] || keys['arrowleft'];
                 this.turningRight = keys['d'] || keys['arrowright'];
 
-                // Apply rotation with reduced sensitivity
                 if (this.turningLeft) {
                     this.angle -= this.rotationSpeed;
                     moved = true;
@@ -771,7 +687,6 @@ class Vehicle {
                     moved = true;
                 }
 
-                // Apply movement
                 if (this.movingForward) {
                     this.x += Math.cos(this.angle) * this.speed;
                     this.y += Math.sin(this.angle) * this.speed;
@@ -783,25 +698,18 @@ class Vehicle {
                     moved = true;
                 }
 
-                // Special ability (Space bar)
-                if (keys[' '] && this.specialAbilityCooldown <= 0 && !this.specialAbilityActive) {
-                    this.activateSpecialAbility();
-                    keys[' '] = false;
-                }
-
-                // Mouse aiming for turret
+                // Mouse aiming
                 if (mouse.x && mouse.y) {
                     const dx = mouse.x - this.x;
                     const dy = mouse.y - this.y;
                     this.turretAngle = Math.atan2(dy, dx);
                 }
             } else {
-                // IMPROVED Mobile touch controls with reduced sensitivity
+                // Mobile controls
                 if (touch.active) {
                     const dx = touch.moveX;
                     const dy = touch.moveY;
 
-                    // Use X for rotation, Y for movement with reduced sensitivity
                     if (Math.abs(dx) > 0.05) {
                         this.angle += dx * this.rotationSpeed * 8;
                         moved = true;
@@ -813,20 +721,18 @@ class Vehicle {
                         moved = true;
                     }
 
-                    // Set turret angle to match vehicle angle for mobile
                     this.turretAngle = this.angle;
                 }
             }
 
-            // Send update to server if moved
+            // Send update to server
             if (moved) {
                 socket.emit('player-update', {
                     id: this.id,
                     x: this.x,
                     y: this.y,
                     angle: this.angle,
-                    turretAngle: this.turretAngle,
-                    level: this.level
+                    turretAngle: this.turretAngle
                 });
             }
 
@@ -837,25 +743,13 @@ class Vehicle {
             }
         }
 
-        // Keep vehicle in bounds
+        // Keep in bounds
         this.x = Math.max(this.width / 2, Math.min(mapSize - this.width / 2, this.x));
         this.y = Math.max(this.height / 2, Math.min(mapSize - this.height / 2, this.y));
 
         // Cooldowns
-        if (this.cooldown > 0) {
-            this.cooldown--;
-        }
-
-        if (this.specialAbilityCooldown > 0) {
-            this.specialAbilityCooldown--;
-        }
-
-        if (this.specialAbilityActive) {
-            this.specialAbilityDuration--;
-            if (this.specialAbilityDuration <= 0) {
-                this.deactivateSpecialAbility();
-            }
-        }
+        if (this.cooldown > 0) this.cooldown--;
+        if (this.specialAbilityCooldown > 0) this.specialAbilityCooldown--;
     }
 
     shoot() {
@@ -870,7 +764,7 @@ class Vehicle {
             damage: this.damage
         });
 
-        // Visual muzzle flash
+        // Muzzle flash
         explosions.push(new Explosion(
             bulletX - Math.cos(this.turretAngle) * 10,
             bulletY - Math.sin(this.turretAngle) * 10,
@@ -883,12 +777,6 @@ class Vehicle {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Skip drawing if stealth is active
-        if (this.stealth && this.isPlayer) {
-            ctx.save();
-            ctx.globalAlpha = 0.3;
-        }
-
         ctx.save();
         ctx.translate(screenX, screenY);
 
@@ -898,11 +786,9 @@ class Vehicle {
         if (this.bodyImageLoaded) {
             ctx.drawImage(this.bodyImage, -this.width / 2, -this.height / 2, this.width, this.height);
         } else {
-            // Fallback to colored rectangle
+            // Fallback colored rectangle
             ctx.fillStyle = this.color;
             ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-
-            // Add some details to make vehicles distinguishable
             ctx.fillStyle = '#333';
             ctx.fillRect(-this.width / 4, -this.height / 4, this.width / 2, this.height / 2);
         }
@@ -915,11 +801,9 @@ class Vehicle {
             const turretSize = this.width * 0.7;
             ctx.drawImage(this.turretImage, -turretSize / 2, -turretSize / 2, turretSize, turretSize);
         } else {
-            // Fallback to simple turret
+            // Fallback turret
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -3, this.width / 2 + 10, 6);
-
-            // Turret base
             ctx.fillStyle = '#555';
             ctx.beginPath();
             ctx.arc(0, 0, 8, 0, Math.PI * 2);
@@ -929,100 +813,18 @@ class Vehicle {
 
         ctx.restore();
 
-        // Draw special ability effects
-        if (this.specialAbilityActive) {
-            this.drawSpecialAbilityEffect(screenX, screenY);
-        }
-
-        // Draw UI elements
+        // Draw UI
         this.drawUI(screenX, screenY);
-
-        if (this.stealth) {
-            ctx.restore();
-        }
-    }
-
-    drawSpecialAbilityEffect(screenX, screenY) {
-        ctx.save();
-        ctx.globalAlpha = 0.6;
-
-        switch (this.vehicleType) {
-            case 'tank':
-                ctx.strokeStyle = '#FF4444';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.width, 0, Math.PI * 2);
-                ctx.stroke();
-                break;
-            case 'jeep':
-                ctx.strokeStyle = '#44FF44';
-                for (let i = 0; i < 8; i++) {
-                    const angle = (Math.PI * 2 / 8) * i;
-                    ctx.beginPath();
-                    ctx.moveTo(screenX, screenY);
-                    ctx.lineTo(
-                        screenX + Math.cos(angle) * (this.width + 20),
-                        screenY + Math.sin(angle) * (this.width + 20)
-                    );
-                    ctx.stroke();
-                }
-                break;
-            case 'apc':
-                ctx.strokeStyle = '#4444FF';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.width * 0.8, 0, Math.PI * 2);
-                ctx.stroke();
-                break;
-            case 'artillery':
-                for (let i = 0; i < 5; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = Math.random() * this.width;
-                    ctx.fillStyle = '#FFAA00';
-                    ctx.beginPath();
-                    ctx.arc(
-                        screenX + Math.cos(angle) * dist,
-                        screenY + Math.sin(angle) * dist,
-                        3, 0, Math.PI * 2
-                    );
-                    ctx.fill();
-                }
-                break;
-            case 'helicopter':
-                ctx.strokeStyle = '#AAAAAA';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.width, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                break;
-            case 'mech':
-                const gradient = ctx.createRadialGradient(
-                    screenX, screenY, this.width * 0.5,
-                    screenX, screenY, this.width * 1.5
-                );
-                gradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
-                gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.width * 1.5, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-        }
-
-        ctx.restore();
     }
 
     drawUI(screenX, screenY) {
-        // Draw name and level
+        // Name and level
         if (this.name) {
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(this.name, screenX, screenY - this.height / 2 - 25);
 
-            // Draw level badge
             if (this.level > 1) {
                 ctx.fillStyle = '#ffd700';
                 ctx.font = '10px Arial';
@@ -1030,7 +832,7 @@ class Vehicle {
             }
         }
 
-        // Draw health bar with clamping to prevent negative values
+        // Health bar
         const barWidth = 50;
         const barHeight = 5;
         const healthPercent = Math.max(0, this.health / this.maxHealth);
@@ -1039,26 +841,12 @@ class Vehicle {
         ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 35, barWidth, barHeight);
         ctx.fillStyle = healthPercent > 0.3 ? 'green' : 'yellow';
         ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 35, barWidth * healthPercent, barHeight);
-
-        // Draw shield bar if active
-        if (this.tempShield > 0) {
-            const shieldPercent = this.tempShield / (this.maxHealth * 0.5);
-            ctx.fillStyle = 'rgba(0, 100, 255, 0.5)';
-            ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 40, barWidth * shieldPercent, 3);
-        }
-
-        // Draw special ability cooldown
-        if (this.specialAbilityCooldown > 0 && this.isPlayer) {
-            const cooldownPercent = this.specialAbilityCooldown / 600;
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
-            ctx.fillRect(screenX - barWidth / 2, screenY + this.height / 2 + 10, barWidth * (1 - cooldownPercent), 4);
-        }
     }
 }
 
 // Bullet class
 class Bullet {
-    constructor(x, y, angle, ownerId, damage, bulletType = 'normal') {
+    constructor(x, y, angle, ownerId, damage) {
         this.x = x;
         this.y = y;
         this.angle = angle;
@@ -1066,19 +854,13 @@ class Bullet {
         this.size = 6;
         this.ownerId = ownerId;
         this.damage = damage;
-        this.bulletType = bulletType;
         this.trail = [];
         this.maxTrail = 5;
     }
 
     update() {
-        this.trail.push({
-            x: this.x,
-            y: this.y
-        });
-        if (this.trail.length > this.maxTrail) {
-            this.trail.shift();
-        }
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > this.maxTrail) this.trail.shift();
 
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
@@ -1101,14 +883,13 @@ class Bullet {
             ctx.fill();
         }
 
-        // Bullet glow
+        // Bullet
         ctx.fillStyle = 'rgba(255, 235, 59, 0.8)';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bullet core
-        ctx.fillStyle = this.bulletType === 'special' ? '#FF00FF' : '#FF5722';
+        ctx.fillStyle = '#FF5722';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size * 0.6, 0, Math.PI * 2);
         ctx.fill();
@@ -1124,7 +905,6 @@ class Resource {
         this.value = value;
         this.size = 20;
         this.pulse = 0;
-        this.collected = false;
     }
 
     update() {
@@ -1132,8 +912,6 @@ class Resource {
     }
 
     draw() {
-        if (this.collected) return;
-
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
         const pulseSize = this.size + Math.sin(this.pulse) * 5;
@@ -1180,7 +958,7 @@ class Resource {
 
 // Explosion class
 class Explosion {
-    constructor(x, y, size, color = null) {
+    constructor(x, y, size, color = '#FF9800') {
         this.x = x;
         this.y = y;
         this.size = size;
@@ -1188,7 +966,7 @@ class Explosion {
         this.currentSize = size;
         this.growing = true;
         this.particles = [];
-        this.color = color || '#FF9800';
+        this.color = color;
         this.createParticles();
     }
 
@@ -1208,14 +986,10 @@ class Explosion {
     update() {
         if (this.growing) {
             this.currentSize += 3;
-            if (this.currentSize >= this.maxSize) {
-                this.growing = false;
-            }
+            if (this.currentSize >= this.maxSize) this.growing = false;
         } else {
             this.currentSize -= 2;
-            if (this.currentSize < 0) {
-                this.currentSize = 0;
-            }
+            if (this.currentSize < 0) this.currentSize = 0;
         }
 
         this.particles.forEach(particle => {
@@ -1286,8 +1060,7 @@ socket.on('game-state', (gameState) => {
         receivedPlayers[playerData.id] = true;
         if (playerData.id === playerId) {
             if (player) {
-                const oldLevel = player.level;
-                // Don't override client-authoritative position, just stats
+                // Update player stats from server
                 player.health = playerData.health;
                 player.kills = playerData.kills;
                 player.score = playerData.score;
@@ -1321,7 +1094,7 @@ socket.on('game-state', (gameState) => {
             players.push(vehicle);
         }
 
-        // Interpolate movement for smoothness
+        // Interpolate movement
         vehicle.x += (playerData.x - vehicle.x) * 0.3;
         vehicle.y += (playerData.y - vehicle.y) * 0.3;
         vehicle.angle = playerData.angle;
@@ -1355,10 +1128,7 @@ socket.on('game-state', (gameState) => {
     resources = gameState.resources.map(resourceData =>
         new Resource(resourceData.x, resourceData.y, resourceData.type, resourceData.value)
     );
-
-    gameTime = gameState.gameTime;
 });
-
 
 socket.on('leaderboard-update', (updatedLeaderboard) => {
     leaderboard = updatedLeaderboard;
@@ -1380,7 +1150,6 @@ socket.on('player-hit', (data) => {
        showGameOver();
     }
 });
-
 
 socket.on('player-killed', (data) => {
     if (data.killerId === playerId && player) {
@@ -1418,16 +1187,13 @@ socket.on('player-left', (leftPlayerId) => {
     players = players.filter(p => p && p.id !== leftPlayerId);
 });
 
-// Resource collection now properly gives points
 socket.on('resource-collected', (data) => {
-    // Remove the collected resource
     resources = resources.filter(r =>
         !(Math.abs(r.x - data.resource.x) < 5 &&
             Math.abs(r.y - data.resource.y) < 5 &&
             r.type === data.resource.type)
     );
 
-    // If it's our player, update stats
     if (data.playerId === playerId && player) {
         if (data.resource.type === 'health') {
             player.health = Math.min(player.maxHealth, player.health + data.resource.value);
@@ -1438,7 +1204,6 @@ socket.on('resource-collected', (data) => {
             scoreDisplay.textContent = player.score;
         }
 
-        // Add explosion effect for collection
         explosions.push(new Explosion(data.resource.x, data.resource.y, 15, '#4CAF50'));
     }
 });
@@ -1452,22 +1217,19 @@ socket.on('resource-spawned', (resourceData) => {
     ));
 });
 
-
-// Handle vehicle upgrade selection
 socket.on('show-upgrade-screen', (data) => {
     if (data.playerId === playerId) {
         showUpgradeSelection(data.nextLevel);
     }
 });
 
-// Handle successful vehicle upgrade
 socket.on('vehicle-upgraded', (data) => {
     const upgradedPlayer = players.find(p => p && p.id === data.playerId);
     if (upgradedPlayer) {
         upgradedPlayer.vehicleType = data.newVehicleType;
         upgradedPlayer.level = data.newLevel;
         upgradedPlayer.updateStats();
-        upgradedPlayer.loadVehicleImages(); // Load new images for the upgraded vehicle
+        upgradedPlayer.loadVehicleImages();
 
         if (upgradedPlayer.isPlayer) {
             vehicleNameDisplay.textContent = upgradedPlayer.displayName;
@@ -1484,7 +1246,6 @@ socket.on('vehicle-upgraded', (data) => {
         }
     }
 });
-
 
 // Show upgrade selection screen
 function showUpgradeSelection(nextLevel) {
@@ -1547,9 +1308,7 @@ function showUpgradeSelection(nextLevel) {
     });
 
     const currentOption = document.querySelector(`.upgrade-option[data-vehicle="${selectedUpgradeVehicle}"]`);
-    if (currentOption) {
-        currentOption.classList.add('selected');
-    }
+    if (currentOption) currentOption.classList.add('selected');
 
     document.getElementById('confirmUpgrade').addEventListener('click', () => {
         socket.emit('select-vehicle-upgrade', {
@@ -1561,21 +1320,17 @@ function showUpgradeSelection(nextLevel) {
     });
 }
 
-
 // Check for resource collection
 function checkResourceCollection() {
     if (!player) return;
 
     for (let i = resources.length - 1; i >= 0; i--) {
         const resource = resources[i];
-        if (resource.collected) continue;
-
         const dx = resource.x - player.x;
         const dy = resource.y - player.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < player.width / 2 + resource.size) {
-            resource.collected = true;
             socket.emit('collect-resource', {
                 playerId: player.id,
                 resource: {
@@ -1585,19 +1340,17 @@ function checkResourceCollection() {
                     value: resource.value
                 }
             });
-            // Immediately remove visually
             resources.splice(i, 1);
         }
     }
 }
-
 
 // Game functions
 function initGame() {
     const nameInput = document.getElementById('playerNameInput');
     playerName = nameInput.value.trim().slice(0, 15) || "Soldier" + Math.floor(Math.random() * 1000);
     
-    // Reset local game state
+    // Reset game state
     players = [];
     bullets = [];
     explosions = [];
@@ -1650,7 +1403,6 @@ function updateLeaderboard() {
     });
 }
 
-
 function updateCamera() {
     if (player) {
         camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
@@ -1661,12 +1413,59 @@ function updateCamera() {
     }
 }
 
+function drawBackground() {
+    if (backgroundLoaded) {
+        // Draw tiled background
+        const tileSize = 500;
+        const startX = Math.floor(camera.x / tileSize) * tileSize;
+        const startY = Math.floor(camera.y / tileSize) * tileSize;
+        const endX = Math.ceil((camera.x + canvas.width) / tileSize) * tileSize;
+        const endY = Math.ceil((camera.y + canvas.height) / tileSize) * tileSize;
+
+        for (let x = startX; x < endX; x += tileSize) {
+            for (let y = startY; y < endY; y += tileSize) {
+                ctx.drawImage(backgroundImage, x - camera.x, y - camera.y, tileSize, tileSize);
+            }
+        }
+    } else {
+        // Fallback gradient background
+        ctx.fillStyle = '#2d5016';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid
+        const gridSize = 100;
+        const startX = Math.floor(camera.x / gridSize) * gridSize;
+        const startY = Math.floor(camera.y / gridSize) * gridSize;
+
+        for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
+            for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
+                const screenX = x - camera.x;
+                const screenY = y - camera.y;
+
+                const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
+                switch (pattern) {
+                    case 0: ctx.fillStyle = 'rgba(45, 80, 22, 0.8)'; break;
+                    case 1: ctx.fillStyle = 'rgba(60, 100, 30, 0.8)'; break;
+                    case 2: ctx.fillStyle = 'rgba(74, 124, 58, 0.8)'; break;
+                    case 3: ctx.fillStyle = 'rgba(85, 140, 65, 0.8)'; break;
+                }
+
+                ctx.fillRect(screenX, screenY, gridSize, gridSize);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(screenX, screenY, gridSize, gridSize);
+            }
+        }
+    }
+}
+
 function drawMiniMap() {
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimap.width, minimap.height);
 
     const scale = minimap.width / mapSize;
 
+    // Draw obstacles
     minimapCtx.fillStyle = '#666';
     obstacles.forEach(obstacle => {
         minimapCtx.fillRect(
@@ -1677,9 +1476,8 @@ function drawMiniMap() {
         );
     });
 
+    // Draw resources
     resources.forEach(resource => {
-        if (resource.collected) return;
-
         if (resource.type === 'health') {
             minimapCtx.fillStyle = '#4CAF50';
         } else if (resource.type === 'ammo') {
@@ -1692,6 +1490,7 @@ function drawMiniMap() {
         minimapCtx.fill();
     });
 
+    // Draw players
     players.forEach(p => {
         if (!p) return;
         minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : p.color;
@@ -1710,6 +1509,7 @@ function drawMiniMap() {
         minimapCtx.stroke();
     });
 
+    // Draw camera view
     minimapCtx.strokeStyle = '#ffd700';
     minimapCtx.lineWidth = 2;
     minimapCtx.strokeRect(
@@ -1718,6 +1518,60 @@ function drawMiniMap() {
         canvas.width * scale,
         canvas.height * scale
     );
+}
+
+function drawHUD() {
+    // Controls info
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, canvas.height - 100, 220, 90);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+
+    if (!isMobile) {
+        ctx.fillText('W/S: Forward/Backward', 20, canvas.height - 80);
+        ctx.fillText('A/D: Rotate', 20, canvas.height - 60);
+        ctx.fillText('Mouse: Aim Turret', 20, canvas.height - 40);
+        ctx.fillText('Click: Shoot', 20, canvas.height - 20);
+    } else {
+        ctx.fillText('Touch & Drag: Move & Rotate', 20, canvas.height - 80);
+        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
+    }
+
+    // Experience bar
+    if (player) {
+        const xpNeeded = 300 + ((player.level - 1) * 150);
+        const currentXP = player.experience;
+        const expPercent = Math.min(1, currentXP / xpNeeded);
+        
+        const barWidth = 250;
+        const barHeight = 12;
+        const x = canvas.width / 2 - barWidth / 2;
+        const y = 15;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(x, y, barWidth, barHeight);
+
+        const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
+        gradient.addColorStop(0, '#9C27B0');
+        gradient.addColorStop(1, '#E1BEE7');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth * expPercent, barHeight);
+
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
+
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+            `Level ${player.level} | ${currentXP}/${xpNeeded} XP`,
+            canvas.width / 2,
+            y + barHeight + 16
+        );
+    }
 }
 
 function showGameOver() {
@@ -1733,126 +1587,25 @@ function showGameOver() {
     gameOverScreen.classList.remove('hidden');
 }
 
-
-function drawGrid() {
-    const gridSize = 100;
-    const startX = Math.floor(camera.x / gridSize) * gridSize;
-    const startY = Math.floor(camera.y / gridSize) * gridSize;
-
-    for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
-        for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
-            const screenX = x - camera.x;
-            const screenY = y - camera.y;
-
-            const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
-
-            switch (pattern) {
-                case 0:
-                    ctx.fillStyle = 'rgba(45, 80, 22, 0.8)';
-                    break;
-                case 1:
-                    ctx.fillStyle = 'rgba(60, 100, 30, 0.8)';
-                    break;
-                case 2:
-                    ctx.fillStyle = 'rgba(74, 124, 58, 0.8)';
-                    break;
-                case 3:
-                    ctx.fillStyle = 'rgba(85, 140, 65, 0.8)';
-                    break;
-            }
-
-            ctx.fillRect(screenX, screenY, gridSize, gridSize);
-
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(screenX, screenY, gridSize, gridSize);
-        }
-    }
-}
-
-function drawExperienceBar() {
-    if (!player) return;
-
-    const barWidth = 250;
-    const barHeight = 12;
-    const x = canvas.width / 2 - barWidth / 2;
-    const y = 15;
-
-    // Progressive XP calculation
-    const xpNeeded = 300 + ((player.level - 1) * 150);
-    const currentXP = player.experience;
-    const expPercent = Math.min(1, currentXP / xpNeeded);
-    
-    // Background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(x, y, barWidth, barHeight);
-
-    // XP fill with gradient
-    const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
-    gradient.addColorStop(0, '#9C27B0');
-    gradient.addColorStop(1, '#E1BEE7');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, y, barWidth * expPercent, barHeight);
-
-    // Border
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, barWidth, barHeight);
-
-    // Text
-    ctx.fillStyle = 'white';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-        `Level ${player.level} | ${currentXP}/${xpNeeded} XP`,
-        canvas.width / 2,
-        y + barHeight + 16
-    );
-}
-
-function drawHUD() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, canvas.height - 100, 220, 90);
-
-    ctx.fillStyle = 'white';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'left';
-
-    if (!isMobile) {
-        ctx.fillText('W/S: Forward/Backward', 20, canvas.height - 80);
-        ctx.fillText('A/D: Rotate', 20, canvas.height - 60);
-        ctx.fillText('Mouse: Aim Turret', 20, canvas.height - 40);
-        ctx.fillText('Click: Shoot | Space: Ability', 20, canvas.height - 20);
-    } else {
-        ctx.fillText('Touch & Drag: Move & Rotate', 20, canvas.height - 80);
-        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
-    }
-
-    if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
-        ctx.fillStyle = '#4CAF50';
-        ctx.fillText('Special Ability Ready!', canvas.width / 2, canvas.height - 20);
-    }
-
-    drawExperienceBar();
-}
-
-
 // Game loop
 function gameLoop(timestamp) {
     if (!gameRunning) return;
 
     updateCamera();
 
-    ctx.fillStyle = '#2d5016';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawGrid();
+    // Draw background
+    drawBackground();
 
+    // Update and draw resources
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
 
+    // Draw obstacles
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -1878,35 +1631,34 @@ function gameLoop(timestamp) {
         }
     });
     
-    // Draw players in a specific order (e.g., player on top)
+    // Update and draw players
     const sortedPlayers = [...players].sort((a, b) => (a.isPlayer ? 1 : -1));
     sortedPlayers.forEach(p => {
         if (p) {
-             if (p.isPlayer) {
-                p.update();
-            }
+            if (p.isPlayer) p.update();
             p.draw();
         }
     });
 
+    // Update and draw bullets
     bullets.forEach(bullet => {
         bullet.update();
         bullet.draw();
     });
 
+    // Update and draw explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
         explosion.draw();
 
-        if (explosion.isDone()) {
-            explosions.splice(i, 1);
-        }
+        if (explosion.isDone()) explosions.splice(i, 1);
     }
 
-    // Check for resource collection every frame
+    // Check for resource collection
     checkResourceCollection();
 
+    // Draw UI
     drawMiniMap();
     drawHUD();
 
@@ -1930,6 +1682,8 @@ startButton.addEventListener('click', () => {
 playAgainButton.addEventListener('click', () => {
     gameOverScreen.classList.add('hidden');
     startScreen.style.display = 'flex';
+    socket.disconnect();
+    socket.connect();
 });
 
 window.addEventListener('beforeunload', () => {
