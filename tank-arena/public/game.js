@@ -424,7 +424,6 @@ console.log('Mobile device detected:', isMobile);
 // Event listeners for desktop
 document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
-    console.log('Key pressed:', e.key);
 });
 
 document.addEventListener('keyup', (e) => {
@@ -451,7 +450,6 @@ if (isMobile) {
         touch.startY = touchEvent.clientY - rect.top;
         touch.x = touch.startX;
         touch.y = touch.startY;
-        console.log('Touch started at:', touch.startX, touch.startY);
     });
 
     touchArea.addEventListener('touchmove', (e) => {
@@ -473,7 +471,6 @@ if (isMobile) {
         touch.active = false;
         touch.moveX = 0;
         touch.moveY = 0;
-        console.log('Touch ended');
     });
 
     // Fire button
@@ -482,7 +479,6 @@ if (isMobile) {
         mouse.clicked = true;
         fireButton.style.transform = 'scale(0.9)';
         fireButton.style.boxShadow = '0 0 40px rgba(255, 0, 0, 0.8)';
-        console.log('Fire button pressed');
     });
 
     fireButton.addEventListener('touchend', (e) => {
@@ -500,7 +496,6 @@ if (isMobile) {
     canvas.addEventListener('mousedown', (e) => {
         if (e.button === 0) {
             mouse.clicked = true;
-            console.log('Mouse clicked');
         }
     });
 
@@ -519,6 +514,43 @@ vehicleOptions.forEach(option => {
     });
 });
 
+// Helper function to create colored vehicle images
+function createVehicleImage(width, height, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw vehicle body
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw details
+    ctx.fillStyle = '#333';
+    ctx.fillRect(width * 0.2, height * 0.2, width * 0.6, height * 0.6);
+    
+    return canvas;
+}
+
+function createTurretImage(size, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw turret base
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw turret barrel
+    ctx.fillStyle = '#555';
+    ctx.fillRect(size/2, size/2 - 3, size * 0.5, 6);
+    
+    return canvas;
+}
+
 // Vehicle class
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
@@ -536,7 +568,7 @@ class Vehicle {
         this.isPlayer = isPlayer;
         this.color = color || this.getDefaultColor();
         this.cooldown = 0;
-        this.id = id; // This should be the socket.id from the server
+        this.id = id;
         this.name = name;
         this.kills = 0;
         this.score = 0;
@@ -551,19 +583,10 @@ class Vehicle {
         this.turningLeft = false;
         this.turningRight = false;
 
-        // Image loading
+        // Image loading - use colored images as fallback
         this.bodyImageLoaded = false;
         this.turretImageLoaded = false;
         this.loadVehicleImages();
-        
-        console.log(`✅ Vehicle created successfully:`, {
-            id: this.id,
-            displayName: this.displayName,
-            health: this.health,
-            position: [this.x, this.y],
-            size: this.width,
-            isPlayer: this.isPlayer
-        });
     }
 
     getDefaultColor() {
@@ -589,7 +612,6 @@ class Vehicle {
             this.turretImage = cached.turret;
             this.bodyImageLoaded = cached.bodyLoaded;
             this.turretImageLoaded = cached.turretLoaded;
-            console.log(`📁 Using cached images for ${imagePath}, loaded: ${this.bodyImageLoaded}/${this.turretImageLoaded}`);
             return;
         }
 
@@ -607,7 +629,10 @@ class Vehicle {
 
         this.bodyImage.onerror = () => {
             this.bodyImageLoaded = false;
-            console.log(`❌ Failed to load body image: /assets/${imagePath}_body.png - Using fallback`);
+            console.log(`❌ Failed to load body image: /assets/${imagePath}_body.png - Using colored fallback`);
+            // Create colored fallback
+            this.bodyImage = createVehicleImage(this.width, this.height, this.color);
+            this.bodyImageLoaded = true;
         };
 
         this.turretImage.onload = () => {
@@ -620,7 +645,10 @@ class Vehicle {
 
         this.turretImage.onerror = () => {
             this.turretImageLoaded = false;
-            console.log(`❌ Failed to load turret image: /assets/${imagePath}_turret.png - Using fallback`);
+            console.log(`❌ Failed to load turret image: /assets/${imagePath}_turret.png - Using colored fallback`);
+            // Create colored fallback
+            this.turretImage = createTurretImage(this.width * 0.7, '#333');
+            this.turretImageLoaded = true;
         };
 
         // Cache and load
@@ -631,8 +659,7 @@ class Vehicle {
             turretLoaded: false
         });
 
-        // Load images (will use fallback if they don't exist)
-        console.log(`📤 Requesting images: /assets/${imagePath}_body.png and /assets/${imagePath}_turret.png`);
+        // Load images
         this.bodyImage.src = `/assets/${imagePath}_body.png`;
         this.turretImage.src = `/assets/${imagePath}_turret.png`;
     }
@@ -653,7 +680,6 @@ class Vehicle {
     }
 
     updateStats() {
-        console.log(`📊 Updating stats for ${this.vehicleType} level ${this.level}`);
         const vehicleData = vehicleSystem[this.vehicleType];
         if (!vehicleData) {
             console.error(`❌ No vehicle data found for type: ${this.vehicleType}`);
@@ -681,17 +707,9 @@ class Vehicle {
         if (!this.health || this.health < 0) {
             this.health = this.maxHealth;
         }
-        
-        console.log(`✅ Stats updated:`, {
-            name: this.displayName,
-            health: this.health,
-            size: this.width,
-            speed: this.speed
-        });
     }
 
     levelUp() {
-        console.log(`⬆️ Attempting to level up from ${this.level} to ${this.level + 1}`);
         if (this.level < 5) {
             this.level++;
             const oldHealth = this.health;
@@ -700,16 +718,7 @@ class Vehicle {
             this.health = this.maxHealth * healthPercent;
 
             // Reload images for new level
-            const imagePath = this.getImagePath();
-            if (!imageCache.has(imagePath)) {
-                this.loadVehicleImages();
-            } else {
-                const cached = imageCache.get(imagePath);
-                this.bodyImage = cached.body;
-                this.turretImage = cached.turret;
-                this.bodyImageLoaded = cached.bodyLoaded;
-                this.turretImageLoaded = cached.turretLoaded;
-            }
+            this.loadVehicleImages();
 
             // Level up effect
             if (this.isPlayer) {
@@ -722,17 +731,14 @@ class Vehicle {
                     ));
                 }
             }
-            console.log(`🎉 Level up successful! Now level ${this.level}`);
             return true;
         }
-        console.log(`🚫 Already at max level (5)`);
         return false;
     }
 
     update() {
         if (this.isPlayer) {
             let moved = false;
-            console.log(`🎮 Player update - Position: [${this.x.toFixed(1)}, ${this.y.toFixed(1)}]`);
 
             if (!isMobile) {
                 // Desktop controls
@@ -744,25 +750,21 @@ class Vehicle {
                 if (this.turningLeft) {
                     this.angle -= this.rotationSpeed;
                     moved = true;
-                    console.log('🔄 Turning left');
                 }
                 if (this.turningRight) {
                     this.angle += this.rotationSpeed;
                     moved = true;
-                    console.log('🔄 Turning right');
                 }
 
                 if (this.movingForward) {
                     this.x += Math.cos(this.angle) * this.speed;
                     this.y += Math.sin(this.angle) * this.speed;
                     moved = true;
-                    console.log('⬆️ Moving forward');
                 }
                 if (this.movingBackward) {
                     this.x -= Math.cos(this.angle) * this.speed * 0.7;
                     this.y -= Math.sin(this.angle) * this.speed * 0.7;
                     moved = true;
-                    console.log('⬇️ Moving backward');
                 }
 
                 // Mouse aiming
@@ -780,14 +782,12 @@ class Vehicle {
                     if (Math.abs(dx) > 0.05) {
                         this.angle += dx * this.rotationSpeed * 8;
                         moved = true;
-                        console.log('📱 Mobile turning');
                     }
 
                     if (Math.abs(dy) > 0.05) {
                         this.x += Math.cos(this.angle) * dy * this.speed * 8;
                         this.y += Math.sin(this.angle) * dy * this.speed * 8;
                         moved = true;
-                        console.log('📱 Mobile moving');
                     }
 
                     this.turretAngle = this.angle;
@@ -796,11 +796,6 @@ class Vehicle {
 
             // Send update to server
             if (moved) {
-                console.log(`📡 Sending player update to server:`, {
-                    x: this.x,
-                    y: this.y,
-                    angle: this.angle
-                });
                 socket.emit('player-update', {
                     id: this.id,
                     x: this.x,
@@ -812,7 +807,6 @@ class Vehicle {
 
             // Shooting
             if (mouse.clicked && this.cooldown <= 0) {
-                console.log('🔫 Shooting!');
                 this.shoot();
                 this.cooldown = this.maxCooldown;
             }
@@ -830,8 +824,6 @@ class Vehicle {
     shoot() {
         const bulletX = this.x + Math.cos(this.turretAngle) * (this.width / 2 + 15);
         const bulletY = this.y + Math.sin(this.turretAngle) * (this.height / 2 + 15);
-
-        console.log(`💥 Shooting bullet from: [${bulletX.toFixed(1)}, ${bulletY.toFixed(1)}]`);
 
         socket.emit('bullet-fired', {
             x: bulletX,
@@ -853,17 +845,6 @@ class Vehicle {
     draw() {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
-        
-        console.log(`🎨 Drawing vehicle at screen coordinates: [${screenX.toFixed(1)}, ${screenY.toFixed(1)}]`);
-        console.log(`   World coordinates: [${this.x.toFixed(1)}, ${this.y.toFixed(1)}]`);
-        console.log(`   Camera position: [${camera.x.toFixed(1)}, ${camera.y.toFixed(1)}]`);
-
-        // Emergency debug: Always draw a red dot at vehicle position
-        ctx.fillStyle = 'red';
-        ctx.beginPath();
-        ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
-        ctx.fill();
-        console.log(`   🔴 DEBUG: Red dot drawn at [${screenX.toFixed(1)}, ${screenY.toFixed(1)}]`);
 
         ctx.save();
         ctx.translate(screenX, screenY);
@@ -872,11 +853,9 @@ class Vehicle {
         ctx.save();
         ctx.rotate(this.angle);
         if (this.bodyImageLoaded) {
-            console.log(`   🖼️ Drawing body image`);
             ctx.drawImage(this.bodyImage, -this.width / 2, -this.height / 2, this.width, this.height);
         } else {
             // Fallback colored rectangle
-            console.log(`   ⚠️ Using fallback body (colored rectangle)`);
             ctx.fillStyle = this.color;
             ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
             ctx.fillStyle = '#333';
@@ -888,12 +867,10 @@ class Vehicle {
         ctx.save();
         ctx.rotate(this.turretAngle);
         if (this.turretImageLoaded) {
-            console.log(`   🖼️ Drawing turret image`);
             const turretSize = this.width * 0.7;
             ctx.drawImage(this.turretImage, -turretSize / 2, -turretSize / 2, turretSize, turretSize);
         } else {
             // Fallback turret
-            console.log(`   ⚠️ Using fallback turret`);
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -3, this.width / 2 + 10, 6);
             ctx.fillStyle = '#555';
@@ -907,7 +884,6 @@ class Vehicle {
 
         // Draw UI
         this.drawUI(screenX, screenY);
-        console.log(`✅ Vehicle drawing complete`);
     }
 
     drawUI(screenX, screenY) {
@@ -949,7 +925,6 @@ class Bullet {
         this.damage = damage;
         this.trail = [];
         this.maxTrail = 5;
-        console.log(`💫 Bullet created at: [${x.toFixed(1)}, ${y.toFixed(1)}]`);
     }
 
     update() {
@@ -999,7 +974,6 @@ class Resource {
         this.value = value;
         this.size = 20;
         this.pulse = 0;
-        console.log(`💎 Resource created: ${type} at [${x}, ${y}]`);
     }
 
     update() {
@@ -1063,7 +1037,6 @@ class Explosion {
         this.particles = [];
         this.color = color;
         this.createParticles();
-        console.log(`💥 Explosion created at: [${x}, ${y}]`);
     }
 
     createParticles() {
@@ -1150,27 +1123,16 @@ socket.on('game-config', (config) => {
 });
 
 socket.on('game-state', (gameState) => {
-    if (!gameRunning) {
-        console.log('⚠️ Game state received but game not running yet');
-        return;
-    }
-
-    console.log('📦 Game state update received:', {
-        players: Object.keys(gameState.players).length,
-        bullets: gameState.bullets.length,
-        resources: gameState.resources.length,
-        obstacles: gameState.obstacles.length
-    });
+    if (!gameRunning) return;
 
     const receivedPlayers = {};
     
-    // First, process all players from server
+    // Process all players from server
     Object.values(gameState.players).forEach(playerData => {
         receivedPlayers[playerData.id] = true;
         
         // Handle local player (you)
         if (playerData.id === playerId) {
-            console.log('👤 Processing local player data from server');
             if (player) {
                 // Update player stats from server but keep client position for smooth movement
                 player.health = playerData.health;
@@ -1179,7 +1141,6 @@ socket.on('game-state', (gameState) => {
                 player.experience = playerData.experience;
 
                 if (player.level !== playerData.level) {
-                   console.log(`🆙 Player level changed: ${player.level} -> ${playerData.level}`);
                    player.level = playerData.level;
                    player.updateStats();
                    vehicleNameDisplay.textContent = player.displayName;
@@ -1189,25 +1150,11 @@ socket.on('game-state', (gameState) => {
                 killsDisplay.textContent = player.kills;
                 scoreDisplay.textContent = player.score;
                 levelDisplay.textContent = player.level;
-            } else {
-                console.error('❌ Server sent player data but local player is null! Creating now...');
-                // Emergency creation if player doesn't exist
-                player = new Vehicle(
-                    playerData.x,
-                    playerData.y,
-                    true,
-                    playerData.id,
-                    playerData.vehicleType,
-                    playerData.color,
-                    playerData.name
-                );
-                players.push(player);
             }
         } else {
             // Handle remote players
             let vehicle = players.find(p => p && p.id === playerData.id);
             if (!vehicle) {
-                console.log(`👥 Creating new remote player: ${playerData.name}`);
                 vehicle = new Vehicle(
                     playerData.x,
                     playerData.y,
@@ -1244,13 +1191,9 @@ socket.on('game-state', (gameState) => {
         if (p && receivedPlayers[p.id]) {
             return true;
         } else {
-            console.log('🗑️ Removing player that left:', p?.id);
             return false;
         }
     });
-    
-    console.log(`👥 Total players after update: ${players.length}`);
-    console.log('Local player in array:', players.find(p => p.isPlayer));
 
     // Update bullets, obstacles, resources
     bullets = gameState.bullets.map(bulletData => {
@@ -1267,18 +1210,14 @@ socket.on('game-state', (gameState) => {
     resources = gameState.resources.map(resourceData =>
         new Resource(resourceData.x, resourceData.y, resourceData.type, resourceData.value)
     );
-    
-    console.log('✅ Game state processed successfully');
 });
 
 socket.on('leaderboard-update', (updatedLeaderboard) => {
     leaderboard = updatedLeaderboard;
-    console.log('🏆 Leaderboard updated with', leaderboard.length, 'players');
     updateLeaderboard();
 });
 
 socket.on('player-hit', (data) => {
-    console.log('💥 Player hit:', data);
     let targetPlayer = players.find(p => p && p.id === data.playerId);
     if (targetPlayer) {
         targetPlayer.health = Math.max(0, data.newHealth);
@@ -1295,7 +1234,6 @@ socket.on('player-hit', (data) => {
 });
 
 socket.on('player-killed', (data) => {
-    console.log('💀 Player killed:', data);
     if (data.killerId === playerId && player) {
         player.kills++;
         player.score += 100;
@@ -1311,7 +1249,6 @@ socket.on('player-killed', (data) => {
 });
 
 socket.on('player-joined', (playerData) => {
-    console.log('👋 New player joined:', playerData.name);
     if (playerData.id !== playerId && !players.some(p => p && p.id === playerData.id)) {
         const vehicle = new Vehicle(
             playerData.x,
@@ -1329,12 +1266,10 @@ socket.on('player-joined', (playerData) => {
 });
 
 socket.on('player-left', (leftPlayerId) => {
-    console.log('👋 Player left:', leftPlayerId);
     players = players.filter(p => p && p.id !== leftPlayerId);
 });
 
 socket.on('resource-collected', (data) => {
-    console.log('💎 Resource collected:', data);
     resources = resources.filter(r =>
         !(Math.abs(r.x - data.resource.x) < 5 &&
             Math.abs(r.y - data.resource.y) < 5 &&
@@ -1356,7 +1291,6 @@ socket.on('resource-collected', (data) => {
 });
 
 socket.on('resource-spawned', (resourceData) => {
-    console.log('💎 New resource spawned:', resourceData);
     resources.push(new Resource(
         resourceData.x,
         resourceData.y,
@@ -1366,14 +1300,12 @@ socket.on('resource-spawned', (resourceData) => {
 });
 
 socket.on('show-upgrade-screen', (data) => {
-    console.log('🔼 Upgrade screen requested:', data);
     if (data.playerId === playerId) {
         showUpgradeSelection(data.nextLevel);
     }
 });
 
 socket.on('vehicle-upgraded', (data) => {
-    console.log('🚀 Vehicle upgraded:', data);
     const upgradedPlayer = players.find(p => p && p.id === data.playerId);
     if (upgradedPlayer) {
         upgradedPlayer.vehicleType = data.newVehicleType;
@@ -1399,12 +1331,8 @@ socket.on('vehicle-upgraded', (data) => {
 
 // Show upgrade selection screen
 function showUpgradeSelection(nextLevel) {
-    console.log('🔼 Showing upgrade selection for level', nextLevel);
     const existingScreen = document.getElementById('upgradeScreen');
-    if (existingScreen) {
-        console.log('⚠️ Upgrade screen already exists');
-        return;
-    }
+    if (existingScreen) return;
 
     const upgradeScreen = document.createElement('div');
     upgradeScreen.id = 'upgradeScreen';
@@ -1450,7 +1378,6 @@ function showUpgradeSelection(nextLevel) {
     `;
 
     document.body.appendChild(upgradeScreen);
-    console.log('✅ Upgrade screen added to DOM');
 
     let selectedUpgradeVehicle = player.vehicleType;
 
@@ -1459,7 +1386,6 @@ function showUpgradeSelection(nextLevel) {
             document.querySelectorAll('.upgrade-option').forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
             selectedUpgradeVehicle = option.dataset.vehicle;
-            console.log('🔘 Upgrade vehicle selected:', selectedUpgradeVehicle);
         });
     });
 
@@ -1467,25 +1393,19 @@ function showUpgradeSelection(nextLevel) {
     if (currentOption) currentOption.classList.add('selected');
 
     document.getElementById('confirmUpgrade').addEventListener('click', () => {
-        console.log('✅ Confirm upgrade clicked, vehicle:', selectedUpgradeVehicle);
         socket.emit('select-vehicle-upgrade', {
             playerId: playerId,
             newVehicleType: selectedUpgradeVehicle,
             newLevel: nextLevel
         });
         document.body.removeChild(upgradeScreen);
-        console.log('🗑️ Upgrade screen removed');
     });
 }
 
 // Check for resource collection
 function checkResourceCollection() {
-    if (!player) {
-        console.log('⚠️ checkResourceCollection: No player');
-        return;
-    }
+    if (!player) return;
 
-    console.log(`🔍 Checking resource collection, ${resources.length} resources available`);
     for (let i = resources.length - 1; i >= 0; i--) {
         const resource = resources[i];
         const dx = resource.x - player.x;
@@ -1493,7 +1413,6 @@ function checkResourceCollection() {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < player.width / 2 + resource.size) {
-            console.log(`💎 Collecting resource: ${resource.type}`);
             socket.emit('collect-resource', {
                 playerId: player.id,
                 resource: {
@@ -1510,46 +1429,31 @@ function checkResourceCollection() {
 
 // Game functions
 function initGame() {
-    console.log('🎮 ===== INIT GAME STARTED =====');
     const nameInput = document.getElementById('playerNameInput');
     playerName = nameInput.value.trim().slice(0, 15) || "Soldier" + Math.floor(Math.random() * 1000);
-    
-    console.log('👤 Player details:', {
-        name: playerName,
-        vehicle: selectedVehicle,
-        id: playerId
-    });
     
     // Reset game state
     players = [];
     bullets = [];
     explosions = [];
     startTime = Date.now();
-    console.log('🔄 Game state reset');
 
     // Create player at center of map
     const startX = mapSize / 2;
     const startY = mapSize / 2;
     
-    console.log('🚗 Creating player vehicle...');
     player = new Vehicle(
         startX,
         startY,
-        true, // isPlayer
+        true,
         playerId,
         selectedVehicle,
-        null, // color (will use default)
+        null,
         playerName
     );
     
-    // CRITICAL FIX: Add player to players array immediately
     players.push(player);
-    console.log('✅ Player vehicle created and added to players array. Players count:', players.length);
-    console.log('Player object:', player);
-    console.log('Player position:', player.x, player.y);
-    console.log('Player ID:', player.id);
 
-    console.log('📡 Sending join-game to server...');
     socket.emit('join-game', {
         name: playerName,
         vehicleType: selectedVehicle,
@@ -1561,18 +1465,13 @@ function initGame() {
     scoreDisplay.textContent = player.score;
     levelDisplay.textContent = player.level;
     vehicleNameDisplay.textContent = player.displayName;
-    console.log('📊 UI updated with player stats');
 
     // Set camera
     camera.x = player.x - canvas.width / 2;
     camera.y = player.y - canvas.height / 2;
-    console.log('📷 Camera set to:', camera.x, camera.y);
-    
-    console.log('🎮 ===== INIT GAME COMPLETED =====');
 }
 
 function updateLeaderboard() {
-    console.log('🏆 Updating leaderboard with', leaderboard.length, 'entries');
     leaderboardEntries.innerHTML = '';
 
     const sorted = [...leaderboard].sort((a, b) => b.score - a.score).slice(0, 10);
@@ -1591,27 +1490,19 @@ function updateLeaderboard() {
         `;
         leaderboardEntries.appendChild(entryEl);
     });
-    console.log('✅ Leaderboard updated');
 }
 
 function updateCamera() {
     if (player) {
-        console.log(`📷 Camera update - Player: [${player.x.toFixed(1)}, ${player.y.toFixed(1)}], Camera: [${camera.x.toFixed(1)}, ${camera.y.toFixed(1)}]`);
-        
         camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
         camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
 
         camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
         camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
-        
-        console.log(`📷 Camera updated to: [${camera.x.toFixed(1)}, ${camera.y.toFixed(1)}]`);
-    } else {
-        console.log('❌ updateCamera: No player!');
     }
 }
 
 function drawBackground() {
-    console.log('🎨 Drawing background, loaded:', backgroundLoaded);
     if (backgroundLoaded) {
         // Draw tiled background
         const tileSize = 500;
@@ -1620,17 +1511,13 @@ function drawBackground() {
         const endX = Math.ceil((camera.x + canvas.width) / tileSize) * tileSize;
         const endY = Math.ceil((camera.y + canvas.height) / tileSize) * tileSize;
 
-        console.log(`🖼️ Tiling background from [${startX}, ${startY}] to [${endX}, ${endY}]`);
-
         for (let x = startX; x < endX; x += tileSize) {
             for (let y = startY; y < endY; y += tileSize) {
                 ctx.drawImage(backgroundImage, x - camera.x, y - camera.y, tileSize, tileSize);
             }
         }
-        console.log('✅ Background image drawn');
     } else {
         // Fallback gradient background
-        console.log('⚠️ Using fallback gradient background');
         ctx.fillStyle = '#2d5016';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -1658,12 +1545,10 @@ function drawBackground() {
                 ctx.strokeRect(screenX, screenY, gridSize, gridSize);
             }
         }
-        console.log('✅ Fallback background drawn');
     }
 }
 
 function drawMiniMap() {
-    console.log('🗺️ Drawing minimap');
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimap.width, minimap.height);
 
@@ -1722,11 +1607,9 @@ function drawMiniMap() {
         canvas.width * scale,
         canvas.height * scale
     );
-    console.log('✅ Minimap drawn');
 }
 
 function drawHUD() {
-    console.log('📱 Drawing HUD');
     // Controls info
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(10, canvas.height - 100, 220, 90);
@@ -1778,11 +1661,9 @@ function drawHUD() {
             y + barHeight + 16
         );
     }
-    console.log('✅ HUD drawn');
 }
 
 function showGameOver() {
-    console.log('💀 Showing game over screen');
     if (!gameRunning) return;
     gameRunning = false;
     if (player) {
@@ -1793,36 +1674,27 @@ function showGameOver() {
         survivalTimeDisplay.textContent = Math.floor(survivalSeconds / 60) + 'm ' + (survivalSeconds % 60) + 's';
     }
     gameOverScreen.classList.remove('hidden');
-    console.log('✅ Game over screen displayed');
 }
 
 // Game loop
 function gameLoop(timestamp) {
-    if (!gameRunning) {
-        console.log('⏹️ Game loop stopped - game not running');
-        return;
-    }
-
-    console.log('🔄 === GAME LOOP START ===');
+    if (!gameRunning) return;
     
     updateCamera();
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    console.log('🧹 Canvas cleared');
 
     // Draw background
     drawBackground();
 
     // Update and draw resources
-    console.log(`💎 Updating ${resources.length} resources`);
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
 
     // Draw obstacles
-    console.log(`🧱 Drawing ${obstacles.length} obstacles`);
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -1850,28 +1722,22 @@ function gameLoop(timestamp) {
     
     // Update and draw players
     const sortedPlayers = [...players].sort((a, b) => (a.isPlayer ? 1 : -1));
-    console.log(`👥 Updating ${sortedPlayers.length} players`);
-    sortedPlayers.forEach((p, index) => {
+    sortedPlayers.forEach((p) => {
         if (p) {
-            console.log(`   Player ${index}: ${p.name} (${p.isPlayer ? 'YOU' : 'remote'})`);
             if (p.isPlayer) {
-                console.log(`   🎮 Updating player controls`);
                 p.update();
             }
-            console.log(`   🎨 Drawing player`);
             p.draw();
         }
     });
 
     // Update and draw bullets
-    console.log(`💫 Updating ${bullets.length} bullets`);
     bullets.forEach(bullet => {
         bullet.update();
         bullet.draw();
     });
 
     // Update and draw explosions
-    console.log(`💥 Updating ${explosions.length} explosions`);
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
@@ -1887,30 +1753,24 @@ function gameLoop(timestamp) {
     drawMiniMap();
     drawHUD();
 
-    console.log('✅ === GAME LOOP COMPLETE ===');
     requestAnimationFrame(gameLoop);
 }
 
 // Start game
 startButton.addEventListener('click', () => {
-    console.log('🎯 Start button clicked');
     if (!selectedVehicle) {
-        console.log('❌ No vehicle selected');
         alert('Please select a vehicle!');
         return;
     }
 
-    console.log('🚀 Starting game...');
     startScreen.style.display = 'none';
     initGame();
     gameRunning = true;
-    console.log('🎮 Game running:', gameRunning);
     requestAnimationFrame(gameLoop);
 });
 
 // Play again
 playAgainButton.addEventListener('click', () => {
-    console.log('🔄 Play again clicked');
     gameOverScreen.classList.add('hidden');
     startScreen.style.display = 'flex';
     socket.disconnect();
@@ -1918,7 +1778,6 @@ playAgainButton.addEventListener('click', () => {
 });
 
 window.addEventListener('beforeunload', () => {
-    console.log('📤 Page unloading, cleaning up...');
     if (gameRunning && playerId) {
         socket.emit('leave-game', playerId);
     }
@@ -1926,7 +1785,5 @@ window.addEventListener('beforeunload', () => {
 
 // Auto-select first vehicle
 vehicleOptions[0].classList.add('selected');
-console.log('✅ First vehicle auto-selected');
 
 console.log('=== GAME INITIALIZATION COMPLETE ===');
-console.log('🚀 Ready to play! Click "START BATTLE" to begin.');
