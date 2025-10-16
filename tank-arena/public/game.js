@@ -38,12 +38,33 @@ function setCanvasSizes() {
 setCanvasSizes();
 window.addEventListener('resize', setCanvasSizes);
 
-// Socket.io connection
-const socket = io();
+// Socket.io connection with better error handling
+const socket = io({
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    timeout: 10000
+});
 
 socket.on('connect_error', (error) => {
     console.error('Connection failed:', error);
     alert('Failed to connect to game server. Please refresh and try again.');
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('Disconnected from server:', reason);
+    if (gameRunning) {
+        alert('Disconnected from server. Game paused.');
+        gameRunning = false;
+    }
+});
+
+socket.on('reconnect', (attemptNumber) => {
+    console.log('Reconnected to server after', attemptNumber, 'attempts');
+    if (!gameRunning && player) {
+        gameRunning = true;
+        requestAnimationFrame(gameLoop);
+    }
 });
 
 // Game variables
@@ -62,11 +83,14 @@ let gameTime = 600;
 let camera = { x: 0, y: 0 };
 let mapSize = 4000;
 let startTime = Date.now();
+let lastUpdateTime = Date.now();
+let fps = 0;
+let frameCount = 0;
 
-// Image cache to prevent multiple loading attempts
+// Image cache with better management
 const imageCache = new Map();
 
-// Enhanced Vehicle System with 5 levels and 6 vehicles
+// Enhanced Vehicle System with better balancing
 const vehicleSystem = {
     tank: {
         base: { name: "Light Tank", health: 150, damage: 35, speed: 2, rotationSpeed: 0.03, size: 70, fireRate: 1.0 },
@@ -124,7 +148,7 @@ const vehicleSystem = {
     }
 };
 
-// Input handling
+// Input handling with better key management
 const keys = {};
 const mouse = { x: 0, y: 0, clicked: false };
 const touch = {
@@ -140,9 +164,13 @@ const touch = {
 // Detect mobile device
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// Event listeners for desktop
+// Enhanced event listeners
 document.addEventListener('keydown', (e) => {
-    keys[e.key.toLowerCase()] = true;
+    const key = e.key.toLowerCase();
+    if (!keys[key]) {
+        keys[key] = true;
+        handleSpecialInput(key);
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -155,7 +183,7 @@ canvas.addEventListener('mousemove', (e) => {
     mouse.y = e.clientY - rect.top + camera.y;
 });
 
-// Mobile controls
+// Enhanced mobile controls
 if (isMobile) {
     mobileControls.style.display = 'block';
     
@@ -182,7 +210,6 @@ if (isMobile) {
         touch.x = touchEvent.clientX - rect.left;
         touch.y = touchEvent.clientY - rect.top;
         
-        // Calculate movement direction with reduced sensitivity
         touch.moveX = (touch.x - touch.startX) * 0.015;
         touch.moveY = (touch.y - touch.startY) * 0.015;
     });
@@ -194,11 +221,9 @@ if (isMobile) {
         touch.moveY = 0;
     });
     
-    // Fire button with better touch handling
     fireButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         mouse.clicked = true;
-        // Visual feedback
         fireButton.style.transform = 'scale(0.9)';
         fireButton.style.boxShadow = '0 0 40px rgba(255, 0, 0, 0.8)';
     });
@@ -206,32 +231,20 @@ if (isMobile) {
     fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         mouse.clicked = false;
-        // Reset visual feedback
         fireButton.style.transform = 'scale(1)';
         fireButton.style.boxShadow = '0 0 30px rgba(255, 0, 0, 0.6)';
     });
     
-    // Prevent context menu on long press
-    touchArea.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-    });
-    
-    fireButton.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-    });
+    // Prevent context menu
+    touchArea.addEventListener('contextmenu', (e) => e.preventDefault());
+    fireButton.addEventListener('contextmenu', (e) => e.preventDefault());
 } else {
     canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 0) {
-            mouse.clicked = true;
-        }
+        if (e.button === 0) mouse.clicked = true;
     });
     
     canvas.addEventListener('mouseup', (e) => {
-        if (e.button === 0) {
-            mouse.clicked = false;
-        }
+        if (e.button === 0) mouse.clicked = false;
     });
 }
 
@@ -244,7 +257,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class with improved steering and image loading
+// Enhanced Vehicle class
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         this.x = x;
@@ -274,7 +287,7 @@ class Vehicle {
         this.turningLeft = false;
         this.turningRight = false;
         
-        // Image loading - use cached images or colored shapes
+        // Image loading
         this.bodyImageLoaded = false;
         this.turretImageLoaded = false;
         this.loadVehicleImages();
@@ -295,7 +308,6 @@ class Vehicle {
     loadVehicleImages() {
         const imagePath = this.getImagePath();
         
-        // Check if images are already cached
         if (imageCache.has(imagePath)) {
             const cached = imageCache.get(imagePath);
             this.bodyImage = cached.body;
@@ -305,48 +317,28 @@ class Vehicle {
             return;
         }
         
-        // Create new image objects
         this.bodyImage = new Image();
         this.turretImage = new Image();
         
-        // Set up loading handlers
         this.bodyImage.onload = () => {
             this.bodyImageLoaded = true;
-            // Update cache
             if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.bodyLoaded = true;
+                imageCache.get(imagePath).bodyLoaded = true;
             }
         };
         
         this.bodyImage.onerror = () => {
             this.bodyImageLoaded = false;
-            // Update cache
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.bodyLoaded = false;
-            }
         };
         
         this.turretImage.onload = () => {
             this.turretImageLoaded = true;
-            // Update cache
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.turretLoaded = true;
-            }
         };
         
         this.turretImage.onerror = () => {
             this.turretImageLoaded = false;
-            // Update cache
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                cached.turretLoaded = false;
-            }
         };
         
-        // Cache the images before setting sources
         imageCache.set(imagePath, {
             body: this.bodyImage,
             turret: this.turretImage,
@@ -396,7 +388,6 @@ class Vehicle {
         this.fireRate = stats.fireRate;
         this.maxCooldown = 60 / this.fireRate;
         
-        // Ensure health doesn't go negative
         if (!this.health || this.health < 0) {
             this.health = this.maxHealth;
         }
@@ -410,12 +401,10 @@ class Vehicle {
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
             
-            // Only reload images if they're not already cached
             const imagePath = this.getImagePath();
             if (!imageCache.has(imagePath)) {
                 this.loadVehicleImages();
             } else {
-                // Use cached images
                 const cached = imageCache.get(imagePath);
                 this.bodyImage = cached.body;
                 this.turretImage = cached.turret;
@@ -423,20 +412,23 @@ class Vehicle {
                 this.turretImageLoaded = cached.turretLoaded;
             }
             
-            // Level up effect
             if (this.isPlayer) {
-                for (let i = 0; i < 15; i++) {
-                    explosions.push(new Explosion(
-                        this.x + Math.random() * 80 - 40, 
-                        this.y + Math.random() * 80 - 40, 
-                        20,
-                        '#4CAF50'
-                    ));
-                }
+                this.createLevelUpEffect();
             }
             return true;
         }
         return false;
+    }
+    
+    createLevelUpEffect() {
+        for (let i = 0; i < 15; i++) {
+            explosions.push(new Explosion(
+                this.x + Math.random() * 80 - 40, 
+                this.y + Math.random() * 80 - 40, 
+                20,
+                '#4CAF50'
+            ));
+        }
     }
     
     activateSpecialAbility() {
@@ -466,6 +458,12 @@ class Vehicle {
                     this.areaDamage = true;
                     break;
             }
+            
+            socket.emit('special-ability-used', {
+                playerId: this.id,
+                vehicleType: this.vehicleType
+            });
+            
             return true;
         }
         return false;
@@ -502,97 +500,95 @@ class Vehicle {
 
     update() {
         if (this.isPlayer) {
-            let moved = false;
-
-            if (!isMobile) {
-                // PROPER TANK CONTROLS: W/S for forward/backward, A/D for rotation
-                this.movingForward = keys['w'] || keys['arrowup'];
-                this.movingBackward = keys['s'] || keys['arrowdown'];
-                this.turningLeft = keys['a'] || keys['arrowleft'];
-                this.turningRight = keys['d'] || keys['arrowright'];
-                
-                // Apply rotation with reduced sensitivity
-                if (this.turningLeft) {
-                    this.angle -= this.rotationSpeed;
-                    moved = true;
-                }
-                if (this.turningRight) {
-                    this.angle += this.rotationSpeed;
-                    moved = true;
-                }
-                
-                // Apply movement
-                if (this.movingForward) {
-                    this.x += Math.cos(this.angle) * this.speed;
-                    this.y += Math.sin(this.angle) * this.speed;
-                    moved = true;
-                }
-                if (this.movingBackward) {
-                    this.x -= Math.cos(this.angle) * this.speed * 0.7;
-                    this.y -= Math.sin(this.angle) * this.speed * 0.7;
-                    moved = true;
-                }
-                
-                // Special ability (Space bar)
-                if (keys[' '] && this.specialAbilityCooldown <= 0 && !this.specialAbilityActive) {
-                    this.activateSpecialAbility();
-                    keys[' '] = false;
-                }
-
-                // Mouse aiming for turret
-                if (mouse.x && mouse.y) {
-                    const dx = mouse.x - this.x;
-                    const dy = mouse.y - this.y;
-                    this.turretAngle = Math.atan2(dy, dx);
-                }
-            } else {
-                // IMPROVED Mobile touch controls with reduced sensitivity
-                if (touch.active) {
-                    const dx = touch.moveX;
-                    const dy = touch.moveY;
-                    
-                    // Use X for rotation, Y for movement with reduced sensitivity
-                    if (Math.abs(dx) > 0.05) {
-                        this.angle += dx * this.rotationSpeed * 8;
-                        moved = true;
-                    }
-                    
-                    if (Math.abs(dy) > 0.05) {
-                        this.x += Math.cos(this.angle) * dy * this.speed * 8;
-                        this.y += Math.sin(this.angle) * dy * this.speed * 8;
-                        moved = true;
-                    }
-                    
-                    // Set turret angle to match vehicle angle for mobile
-                    this.turretAngle = this.angle;
-                }
-            }
-
-            // Send update to server if moved
-            if (moved) {
-                socket.emit('player-update', {
-                    id: this.id,
-                    x: this.x,
-                    y: this.y,
-                    angle: this.angle,
-                    turretAngle: this.turretAngle,
-                    level: this.level
-                });
-            }
-
-            // Shooting
-            if (mouse.clicked && this.cooldown <= 0) {
-                this.shoot();
-                this.cooldown = this.maxCooldown;
-                mouse.clicked = false;
-            }
+            this.handlePlayerInput();
         }
 
         // Keep vehicle in bounds
         this.x = Math.max(this.width/2, Math.min(mapSize - this.width/2, this.x));
         this.y = Math.max(this.height/2, Math.min(mapSize - this.height/2, this.y));
 
-        // Cooldowns
+        // Update cooldowns
+        this.updateCooldowns();
+    }
+    
+    handlePlayerInput() {
+        let moved = false;
+
+        if (!isMobile) {
+            // Desktop controls
+            this.movingForward = keys['w'] || keys['arrowup'];
+            this.movingBackward = keys['s'] || keys['arrowdown'];
+            this.turningLeft = keys['a'] || keys['arrowleft'];
+            this.turningRight = keys['d'] || keys['arrowright'];
+            
+            if (this.turningLeft) {
+                this.angle -= this.rotationSpeed;
+                moved = true;
+            }
+            if (this.turningRight) {
+                this.angle += this.rotationSpeed;
+                moved = true;
+            }
+            
+            if (this.movingForward) {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                moved = true;
+            }
+            if (this.movingBackward) {
+                this.x -= Math.cos(this.angle) * this.speed * 0.7;
+                this.y -= Math.sin(this.angle) * this.speed * 0.7;
+                moved = true;
+            }
+
+            // Mouse aiming
+            if (mouse.x && mouse.y) {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                this.turretAngle = Math.atan2(dy, dx);
+            }
+        } else {
+            // Mobile controls
+            if (touch.active) {
+                const dx = touch.moveX;
+                const dy = touch.moveY;
+                
+                if (Math.abs(dx) > 0.05) {
+                    this.angle += dx * this.rotationSpeed * 8;
+                    moved = true;
+                }
+                
+                if (Math.abs(dy) > 0.05) {
+                    this.x += Math.cos(this.angle) * dy * this.speed * 8;
+                    this.y += Math.sin(this.angle) * dy * this.speed * 8;
+                    moved = true;
+                }
+                
+                this.turretAngle = this.angle;
+            }
+        }
+
+        // Send update to server if moved
+        if (moved) {
+            socket.emit('player-update', {
+                id: this.id,
+                x: this.x,
+                y: this.y,
+                angle: this.angle,
+                turretAngle: this.turretAngle,
+                level: this.level
+            });
+        }
+
+        // Shooting
+        if (mouse.clicked && this.cooldown <= 0) {
+            this.shoot();
+            this.cooldown = this.maxCooldown;
+            mouse.clicked = false;
+        }
+    }
+    
+    updateCooldowns() {
         if (this.cooldown > 0) {
             this.cooldown--;
         }
@@ -634,7 +630,6 @@ class Vehicle {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Skip drawing if stealth is active
         if (this.stealth && this.isPlayer) {
             ctx.save();
             ctx.globalAlpha = 0.3;
@@ -649,11 +644,9 @@ class Vehicle {
         if (this.bodyImageLoaded) {
             ctx.drawImage(this.bodyImage, -this.width/2, -this.height/2, this.width, this.height);
         } else {
-            // Fallback to colored rectangle
             ctx.fillStyle = this.color;
             ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
             
-            // Add some details to make vehicles distinguishable
             ctx.fillStyle = '#333';
             ctx.fillRect(-this.width/4, -this.height/4, this.width/2, this.height/2);
         }
@@ -666,11 +659,9 @@ class Vehicle {
             const turretSize = this.width * 0.7;
             ctx.drawImage(this.turretImage, -turretSize/2, -turretSize/2, turretSize, turretSize);
         } else {
-            // Fallback to simple turret
             ctx.fillStyle = '#333';
             ctx.fillRect(0, -3, this.width/2 + 10, 6);
             
-            // Turret base
             ctx.fillStyle = '#555';
             ctx.beginPath();
             ctx.arc(0, 0, 8, 0, Math.PI * 2);
@@ -680,12 +671,10 @@ class Vehicle {
         
         ctx.restore();
 
-        // Draw special ability effects
         if (this.specialAbilityActive) {
             this.drawSpecialAbilityEffect(screenX, screenY);
         }
 
-        // Draw UI elements
         this.drawUI(screenX, screenY);
         
         if (this.stealth) {
@@ -773,7 +762,6 @@ class Vehicle {
             ctx.textAlign = 'center';
             ctx.fillText(this.name, screenX, screenY - this.height/2 - 25);
             
-            // Draw level badge
             if (this.level > 1) {
                 ctx.fillStyle = '#ffd700';
                 ctx.font = '10px Arial';
@@ -781,7 +769,7 @@ class Vehicle {
             }
         }
 
-        // Draw health bar with clamping to prevent negative values
+        // Draw health bar
         const barWidth = 50;
         const barHeight = 5;
         const healthPercent = Math.max(0, this.health / this.maxHealth);
@@ -807,7 +795,7 @@ class Vehicle {
     }
 }
 
-// Bullet class
+// Enhanced Bullet class
 class Bullet {
     constructor(x, y, angle, ownerId, damage, bulletType = 'normal') {
         this.x = x;
@@ -820,9 +808,11 @@ class Bullet {
         this.bulletType = bulletType;
         this.trail = [];
         this.maxTrail = 5;
+        this.lifeTime = 120; // bullets disappear after 2 seconds
     }
     
     update() {
+        this.lifeTime--;
         this.trail.push({x: this.x, y: this.y});
         if (this.trail.length > this.maxTrail) {
             this.trail.shift();
@@ -830,6 +820,9 @@ class Bullet {
         
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
+        
+        // Remove if out of bounds or lifetime expired
+        return this.x > 0 && this.x < mapSize && this.y > 0 && this.y < mapSize && this.lifeTime > 0;
     }
 
     draw() {
@@ -863,7 +856,7 @@ class Bullet {
     }
 }
 
-// Resource class
+// Enhanced Resource class
 class Resource {
     constructor(x, y, type, value) {
         this.x = x;
@@ -873,21 +866,25 @@ class Resource {
         this.size = 20;
         this.pulse = 0;
         this.collected = false;
+        this.collectionTimer = 0;
     }
 
     update() {
         this.pulse = (this.pulse + 0.1) % (Math.PI * 2);
+        if (this.collected) {
+            this.collectionTimer++;
+        }
     }
 
     draw() {
-        if (this.collected) return;
+        if (this.collected && this.collectionTimer > 30) return;
         
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
         const pulseSize = this.size + Math.sin(this.pulse) * 5;
 
         ctx.save();
-        ctx.globalAlpha = 0.8 + Math.sin(this.pulse) * 0.2;
+        ctx.globalAlpha = this.collected ? 0.3 : 0.8 + Math.sin(this.pulse) * 0.2;
         
         if (this.type === 'health') {
             ctx.fillStyle = '#4CAF50';
@@ -926,7 +923,7 @@ class Resource {
     }
 }
 
-// Explosion class
+// Enhanced Explosion class
 class Explosion {
     constructor(x, y, size, color = null) {
         this.x = x;
@@ -1014,7 +1011,7 @@ class Explosion {
     }
 }
 
-// Socket events
+// Enhanced Socket Event Handlers
 socket.on('connect', () => {
     playerId = socket.id;
     console.log('Connected to server with ID:', playerId);
@@ -1028,108 +1025,126 @@ socket.on('game-config', (config) => {
 socket.on('game-state', (gameState) => {
     if (!gameRunning) return;
     
-    players = Object.values(gameState.players).map(playerData => {
+    // Update players
+    const newPlayers = [];
+    Object.values(gameState.players).forEach(playerData => {
         if (playerData.id === playerId) {
             if (player) {
-                const oldLevel = player.level;
-                player.health = playerData.health;
-                player.kills = playerData.kills;
-                player.score = playerData.score;
-                player.experience = playerData.experience;
-                player.level = playerData.level;
-                player.turretAngle = playerData.turretAngle || player.turretAngle;
-                
-                healthDisplay.textContent = Math.ceil(player.health);
-                killsDisplay.textContent = player.kills;
-                scoreDisplay.textContent = player.score;
-                levelDisplay.textContent = player.level;
-                
-                if (oldLevel !== player.level) {
-                    player.updateStats();
-                    vehicleNameDisplay.textContent = player.displayName;
-                }
+                updatePlayerFromData(player, playerData);
             }
-            return player;
-        }
-        
-        let vehicle = players.find(p => p.id === playerData.id);
-        if (!vehicle) {
-            vehicle = new Vehicle(
-                playerData.x, 
-                playerData.y, 
-                false, 
-                playerData.id, 
-                playerData.vehicleType, 
-                playerData.color, 
-                playerData.name
-            );
-        }
-        
-        vehicle.x = playerData.x;
-        vehicle.y = playerData.y;
-        vehicle.health = playerData.health;
-        vehicle.kills = playerData.kills;
-        vehicle.score = playerData.score;
-        vehicle.experience = playerData.experience;
-        vehicle.angle = playerData.angle;
-        vehicle.turretAngle = playerData.turretAngle || playerData.angle;
-        
-        if (vehicle.level !== playerData.level) {
-            vehicle.level = playerData.level;
-            vehicle.updateStats();
-            // Don't reload images here to prevent console spam
-            const imagePath = vehicle.getImagePath();
-            if (imageCache.has(imagePath)) {
-                const cached = imageCache.get(imagePath);
-                vehicle.bodyImage = cached.body;
-                vehicle.turretImage = cached.turret;
-                vehicle.bodyImageLoaded = cached.bodyLoaded;
-                vehicle.turretImageLoaded = cached.turretLoaded;
+            newPlayers.push(player);
+        } else {
+            let vehicle = players.find(p => p.id === playerData.id);
+            if (!vehicle) {
+                vehicle = createNewVehicle(playerData);
             }
+            updateVehicleFromData(vehicle, playerData);
+            newPlayers.push(vehicle);
         }
-        
-        return vehicle;
-    }).filter(Boolean);
-    
-    bullets = gameState.bullets.map(bulletData => {
-        return new Bullet(
-            bulletData.x, 
-            bulletData.y, 
-            bulletData.angle, 
-            bulletData.ownerId,
-            bulletData.damage
-        );
     });
+    players = newPlayers.filter(Boolean);
     
-    obstacles = gameState.obstacles;
-    resources = gameState.resources.map(resourceData => 
-        new Resource(resourceData.x, resourceData.y, resourceData.type, resourceData.value)
+    // Update bullets
+    bullets = gameState.bullets.map(bulletData => 
+        new Bullet(bulletData.x, bulletData.y, bulletData.angle, bulletData.ownerId, bulletData.damage)
     );
     
-    gameTime = gameState.gameTime;
+    // Update resources
+    updateResources(gameState.resources);
+    
+    obstacles = gameState.obstacles || obstacles;
+    gameTime = gameState.gameTime || gameTime;
 });
 
+function updatePlayerFromData(player, playerData) {
+    const oldLevel = player.level;
+    player.health = playerData.health;
+    player.kills = playerData.kills;
+    player.score = playerData.score;
+    player.experience = playerData.experience;
+    player.level = playerData.level;
+    player.turretAngle = playerData.turretAngle || player.turretAngle;
+    
+    healthDisplay.textContent = Math.ceil(player.health);
+    killsDisplay.textContent = player.kills;
+    scoreDisplay.textContent = player.score;
+    levelDisplay.textContent = player.level;
+    
+    if (oldLevel !== player.level) {
+        player.updateStats();
+        vehicleNameDisplay.textContent = player.displayName;
+    }
+}
+
+function createNewVehicle(playerData) {
+    return new Vehicle(
+        playerData.x, 
+        playerData.y, 
+        false, 
+        playerData.id, 
+        playerData.vehicleType, 
+        playerData.color, 
+        playerData.name
+    );
+}
+
+function updateVehicleFromData(vehicle, playerData) {
+    vehicle.x = playerData.x;
+    vehicle.y = playerData.y;
+    vehicle.health = playerData.health;
+    vehicle.kills = playerData.kills;
+    vehicle.score = playerData.score;
+    vehicle.experience = playerData.experience;
+    vehicle.angle = playerData.angle;
+    vehicle.turretAngle = playerData.turretAngle || playerData.angle;
+    
+    if (vehicle.level !== playerData.level) {
+        vehicle.level = playerData.level;
+        vehicle.updateStats();
+        const imagePath = vehicle.getImagePath();
+        if (imageCache.has(imagePath)) {
+            const cached = imageCache.get(imagePath);
+            vehicle.bodyImage = cached.body;
+            vehicle.turretImage = cached.turret;
+            vehicle.bodyImageLoaded = cached.bodyLoaded;
+            vehicle.turretImageLoaded = cached.turretLoaded;
+        }
+    }
+}
+
+function updateResources(serverResources) {
+    const existingResources = new Map();
+    resources.forEach(r => {
+        existingResources.set(`${r.x}-${r.y}-${r.type}`, r);
+    });
+    
+    resources = serverResources.map(resourceData => {
+        const key = `${resourceData.x}-${resourceData.y}-${resourceData.type}`;
+        let resource = existingResources.get(key);
+        if (!resource) {
+            resource = new Resource(resourceData.x, resourceData.y, resourceData.type, resourceData.value);
+        }
+        resource.collected = resourceData.collected || false;
+        return resource;
+    });
+}
+
+// Other socket events remain similar but with better error handling
 socket.on('leaderboard-update', (updatedLeaderboard) => {
     leaderboard = updatedLeaderboard;
     updateLeaderboard();
 });
 
 socket.on('player-hit', (data) => {
-    if (data.playerId === playerId) {
-        if (player) {
-            player.health = Math.max(0, data.newHealth);
-            healthDisplay.textContent = Math.ceil(player.health);
-        }
-        explosions.push(new Explosion(data.x, data.y, 25));
+    if (data.playerId === playerId && player) {
+        player.health = Math.max(0, data.newHealth);
+        healthDisplay.textContent = Math.ceil(player.health);
         
         if (data.newHealth <= 0) {
-            setTimeout(() => {
-                showGameOver();
-            }, 1000);
+            setTimeout(showGameOver, 1000);
         }
-    } else {
-        explosions.push(new Explosion(data.x, data.y, 20));
     }
+    explosions.push(new Explosion(data.x, data.y, data.playerId === playerId ? 25 : 20));
 });
 
 socket.on('player-killed', (data) => {
@@ -1163,15 +1178,7 @@ socket.on('player-joined', (playerData) => {
     console.log('Player joined:', playerData.name);
     
     if (playerData.id !== playerId) {
-        const vehicle = new Vehicle(
-            playerData.x,
-            playerData.y,
-            false,
-            playerData.id,
-            playerData.vehicleType,
-            playerData.color,
-            playerData.name
-        );
+        const vehicle = createNewVehicle(playerData);
         vehicle.level = playerData.level || 1;
         vehicle.updateStats();
         players.push(vehicle);
@@ -1193,42 +1200,41 @@ socket.on('bullet-created', (bulletData) => {
     ));
 });
 
-// Resource collection now properly gives points
 socket.on('resource-collected', (data) => {
-    // Remove the collected resource
     resources = resources.filter(r => 
         !(Math.abs(r.x - data.resource.x) < 5 && 
           Math.abs(r.y - data.resource.y) < 5 && 
           r.type === data.resource.type)
     );
     
-    // If it's our player, update stats
     if (data.playerId === playerId && player) {
-        if (data.resource.type === 'health') {
-            player.health = Math.min(player.maxHealth, player.health + data.resource.value);
-            healthDisplay.textContent = Math.ceil(player.health);
-        } else if (data.resource.type === 'experience') {
-            player.experience += data.resource.value;
-            player.score += 20;
-            scoreDisplay.textContent = player.score;
-            
-            const newLevel = Math.floor(player.experience / 300) + 1;
-            if (newLevel > player.level && player.levelUp()) {
-                levelDisplay.textContent = player.level;
-                vehicleNameDisplay.textContent = player.displayName;
-                
-                socket.emit('player-upgraded', {
-                    id: playerId,
-                    level: player.level,
-                    vehicleType: player.vehicleType
-                });
-            }
-        }
-        
-        // Add explosion effect for collection
+        handleResourceCollection(data.resource);
         explosions.push(new Explosion(data.resource.x, data.resource.y, 15, '#4CAF50'));
     }
 });
+
+function handleResourceCollection(resource) {
+    if (resource.type === 'health') {
+        player.health = Math.min(player.maxHealth, player.health + resource.value);
+        healthDisplay.textContent = Math.ceil(player.health);
+    } else if (resource.type === 'experience') {
+        player.experience += resource.value;
+        player.score += 20;
+        scoreDisplay.textContent = player.score;
+        
+        const newLevel = Math.floor(player.experience / 300) + 1;
+        if (newLevel > player.level && player.levelUp()) {
+            levelDisplay.textContent = player.level;
+            vehicleNameDisplay.textContent = player.displayName;
+            
+            socket.emit('player-upgraded', {
+                id: playerId,
+                level: player.level,
+                vehicleType: player.vehicleType
+            });
+        }
+    }
+}
 
 socket.on('resource-spawned', (resourceData) => {
     resources.push(new Resource(
@@ -1244,7 +1250,6 @@ socket.on('player-upgraded', (data) => {
     if (upgradedPlayer) {
         upgradedPlayer.level = data.level;
         upgradedPlayer.updateStats();
-        // Use cached images instead of reloading
         const imagePath = upgradedPlayer.getImagePath();
         if (imageCache.has(imagePath)) {
             const cached = imageCache.get(imagePath);
@@ -1256,224 +1261,33 @@ socket.on('player-upgraded', (data) => {
     }
 });
 
-// Handle vehicle upgrade selection
-socket.on('show-upgrade-screen', (data) => {
-    if (data.playerId === playerId) {
-        showUpgradeSelection(data.nextLevel);
+// Enhanced input handling
+function handleSpecialInput(key) {
+    if (!player || !gameRunning) return;
+    
+    switch(key) {
+        case ' ':
+            if (player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
+                player.activateSpecialAbility();
+            }
+            break;
+        case 'r':
+            // Quick respawn if dead
+            if (player.health <= 0) {
+                socket.emit('request-respawn', playerId);
+            }
+            break;
+        case 'p':
+            // Toggle pause (client-side)
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+            break;
     }
-});
-
-// Handle successful vehicle upgrade
-socket.on('vehicle-upgraded', (data) => {
-    if (data.playerId === playerId && player) {
-        player.vehicleType = data.newVehicleType;
-        player.level = data.newLevel;
-        player.updateStats();
-        vehicleNameDisplay.textContent = player.displayName;
-        levelDisplay.textContent = player.level;
-        
-        // Show upgrade effect
-        for (let i = 0; i < 20; i++) {
-            explosions.push(new Explosion(
-                player.x + Math.random() * 100 - 50,
-                player.y + Math.random() * 100 - 50,
-                25,
-                '#4CAF50'
-            ));
-        }
-    }
-});
-
-// Show upgrade selection screen
-function showUpgradeSelection(nextLevel) {
-    // Create upgrade screen
-    const upgradeScreen = document.createElement('div');
-    upgradeScreen.id = 'upgradeScreen';
-    upgradeScreen.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    `;
-    
-    upgradeScreen.innerHTML = `
-        <div id="upgradeContent" style="
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
-            padding: 30px;
-            border-radius: 20px;
-            border: 3px solid #ffd700;
-            text-align: center;
-            color: white;
-            max-width: 90%;
-            max-height: 90%;
-            overflow-y: auto;
-            backdrop-filter: blur(10px);
-        ">
-            <h2 style="color: #ffd700; margin-bottom: 15px;">🚀 VEHICLE UPGRADE AVAILABLE!</h2>
-            <p style="margin-bottom: 20px; font-size: 1.2em;">You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
-            <div class="upgrade-options" style="
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin: 20px 0;
-            ">
-                <div class="upgrade-option" data-vehicle="tank" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚀</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.tank.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.tank.upgrades[nextLevel]?.health || 'MAX'} | Damage: ${vehicleSystem.tank.upgrades[nextLevel]?.damage || 'MAX'}</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="jeep" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚙</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.jeep.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.jeep.upgrades[nextLevel]?.health || 'MAX'} | Speed: ${vehicleSystem.jeep.upgrades[nextLevel]?.speed || 'MAX'}</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="apc" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚜</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.apc.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.apc.upgrades[nextLevel]?.health || 'MAX'} | Armor: Heavy</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="artillery" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚛</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.artillery.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Damage: ${vehicleSystem.artillery.upgrades[nextLevel]?.damage || 'MAX'} | Range: Long</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="helicopter" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🚁</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.helicopter.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Speed: ${vehicleSystem.helicopter.upgrades[nextLevel]?.speed || 'MAX'} | Mobility: High</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="mech" style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 10px;
-                    border: 2px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                ">
-                    <div class="vehicle-icon" style="font-size: 40px; margin-bottom: 10px;">🤖</div>
-                    <div class="vehicle-name" style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${vehicleSystem.mech.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats" style="color: #ccc; font-size: 0.9em;">Health: ${vehicleSystem.mech.upgrades[nextLevel]?.health || 'MAX'} | Power: High</div>
-                </div>
-            </div>
-            <button id="confirmUpgrade" style="
-                padding: 15px 30px;
-                background: linear-gradient(45deg, #4CAF50, #45a049);
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-size: 18px;
-                cursor: pointer;
-                margin-top: 20px;
-                transition: all 0.3s ease;
-            ">CONFIRM UPGRADE</button>
-        </div>
-    `;
-    
-    document.body.appendChild(upgradeScreen);
-    
-    let selectedVehicle = player.vehicleType;
-    
-    // Handle vehicle selection
-    document.querySelectorAll('.upgrade-option').forEach(option => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.upgrade-option').forEach(opt => {
-                opt.style.borderColor = 'transparent';
-                opt.style.background = 'rgba(255, 255, 255, 0.1)';
-                opt.style.transform = 'none';
-            });
-            option.style.borderColor = '#ffd700';
-            option.style.background = 'rgba(255, 215, 0, 0.2)';
-            option.style.transform = 'translateY(-5px)';
-            selectedVehicle = option.dataset.vehicle;
-        });
-    });
-    
-    // Auto-select current vehicle
-    const currentOption = document.querySelector(`.upgrade-option[data-vehicle="${selectedVehicle}"]`);
-    if (currentOption) {
-        currentOption.style.borderColor = '#ffd700';
-        currentOption.style.background = 'rgba(255, 215, 0, 0.2)';
-        currentOption.style.transform = 'translateY(-5px)';
-    }
-    
-    // Handle confirmation
-    document.getElementById('confirmUpgrade').addEventListener('click', () => {
-        socket.emit('select-vehicle-upgrade', {
-            playerId: playerId,
-            newVehicleType: selectedVehicle,
-            newLevel: nextLevel
-        });
-        document.body.removeChild(upgradeScreen);
-    });
 }
 
-// Check for resource collection
-function checkResourceCollection() {
-    if (!player) return;
-    
-    resources.forEach((resource, index) => {
-        const dx = resource.x - player.x;
-        const dy = resource.y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < player.width/2 + resource.size && !resource.collected) {
-            resource.collected = true;
-            
-            socket.emit('collect-resource', {
-                playerId: player.id,
-                resource: {
-                    x: resource.x,
-                    y: resource.y,
-                    type: resource.type,
-                    value: resource.value
-                }
-            });
-        }
-    });
-}
-
-// Game functions
+// Enhanced game functions
 function initGame() {
     const nameInput = document.getElementById('playerNameInput');
     playerName = nameInput.value.trim() || "Soldier" + Math.floor(Math.random() * 1000);
@@ -1499,6 +1313,8 @@ function initGame() {
     bullets = [];
     explosions = [];
     startTime = Date.now();
+    lastUpdateTime = Date.now();
+    frameCount = 0;
     
     healthDisplay.textContent = Math.ceil(player.health);
     killsDisplay.textContent = player.kills;
@@ -1516,6 +1332,7 @@ function initGame() {
 function generateObstacles() {
     obstacles = [];
     
+    // Small obstacles
     for (let i = 0; i < 50; i++) {
         obstacles.push({
             x: Math.random() * mapSize,
@@ -1525,6 +1342,7 @@ function generateObstacles() {
         });
     }
     
+    // Large obstacles
     for (let i = 0; i < 8; i++) {
         obstacles.push({
             x: Math.random() * mapSize,
@@ -1534,6 +1352,7 @@ function generateObstacles() {
         });
     }
     
+    // Wall-like obstacles
     for (let i = 0; i < 10; i++) {
         const isHorizontal = Math.random() > 0.5;
         if (isHorizontal) {
@@ -1585,6 +1404,42 @@ function generateResources() {
     }
 }
 
+function checkResourceCollection() {
+    if (!player) return;
+    
+    resources.forEach((resource) => {
+        if (resource.collected) return;
+        
+        const dx = resource.x - player.x;
+        const dy = resource.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < player.width/2 + resource.size) {
+            resource.collected = true;
+            
+            socket.emit('collect-resource', {
+                playerId: player.id,
+                resource: {
+                    x: resource.x,
+                    y: resource.y,
+                    type: resource.type,
+                    value: resource.value
+                }
+            });
+        }
+    });
+}
+
+function updateCamera() {
+    if (player) {
+        camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
+        camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+        
+        camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
+        camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
+    }
+}
+
 function updateLeaderboard() {
     leaderboardEntries.innerHTML = '';
     
@@ -1609,22 +1464,13 @@ function updateLeaderboard() {
     }
 }
 
-function updateCamera() {
-    if (player) {
-        camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
-        camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
-        
-        camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
-        camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
-    }
-}
-
 function drawMiniMap() {
     minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     minimapCtx.fillRect(0, 0, minimap.width, minimap.height);
     
     const scale = minimap.width / mapSize;
     
+    // Draw obstacles
     minimapCtx.fillStyle = '#666';
     obstacles.forEach(obstacle => {
         minimapCtx.fillRect(
@@ -1635,6 +1481,7 @@ function drawMiniMap() {
         );
     });
     
+    // Draw resources
     resources.forEach(resource => {
         if (resource.collected) return;
         
@@ -1650,6 +1497,7 @@ function drawMiniMap() {
         minimapCtx.fill();
     });
     
+    // Draw players
     players.forEach(p => {
         minimapCtx.fillStyle = p.id === playerId ? '#ffd700' : p.color;
         minimapCtx.beginPath();
@@ -1667,6 +1515,7 @@ function drawMiniMap() {
         minimapCtx.stroke();
     });
     
+    // Draw camera view
     minimapCtx.strokeStyle = '#ffd700';
     minimapCtx.lineWidth = 2;
     minimapCtx.strokeRect(
@@ -1702,18 +1551,10 @@ function drawGrid() {
             const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
             
             switch(pattern) {
-                case 0:
-                    ctx.fillStyle = 'rgba(45, 80, 22, 0.8)';
-                    break;
-                case 1:
-                    ctx.fillStyle = 'rgba(60, 100, 30, 0.8)';
-                    break;
-                case 2:
-                    ctx.fillStyle = 'rgba(74, 124, 58, 0.8)';
-                    break;
-                case 3:
-                    ctx.fillStyle = 'rgba(85, 140, 65, 0.8)';
-                    break;
+                case 0: ctx.fillStyle = 'rgba(45, 80, 22, 0.8)'; break;
+                case 1: ctx.fillStyle = 'rgba(60, 100, 30, 0.8)'; break;
+                case 2: ctx.fillStyle = 'rgba(74, 124, 58, 0.8)'; break;
+                case 3: ctx.fillStyle = 'rgba(85, 140, 65, 0.8)'; break;
             }
             
             ctx.fillRect(screenX, screenY, gridSize, gridSize);
@@ -1733,7 +1574,6 @@ function drawExperienceBar() {
     const x = canvas.width / 2 - barWidth / 2;
     const y = 15;
     
-    // Progressive XP calculation
     const xpNeeded = 300 + (player.level * 150);
     const currentXP = player.experience % xpNeeded;
     const expPercent = currentXP / xpNeeded;
@@ -1767,6 +1607,7 @@ function drawExperienceBar() {
 }
 
 function drawHUD() {
+    // Controls info
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(10, canvas.height - 100, 200, 90);
     
@@ -1784,30 +1625,53 @@ function drawHUD() {
         ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
     }
     
+    // Special ability status
     if (player && player.specialAbilityCooldown <= 0 && !player.specialAbilityActive) {
         ctx.fillStyle = '#4CAF50';
         ctx.fillText('Special Ability Ready!', canvas.width - 150, 30);
     }
     
+    // FPS counter
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`FPS: ${fps}`, canvas.width - 10, 20);
+    
     drawExperienceBar();
 }
 
-// Game loop
+function calculateFPS() {
+    frameCount++;
+    const now = Date.now();
+    const delta = now - lastUpdateTime;
+    
+    if (delta >= 1000) {
+        fps = Math.round((frameCount * 1000) / delta);
+        frameCount = 0;
+        lastUpdateTime = now;
+    }
+}
+
+// Enhanced game loop
 function gameLoop(timestamp) {
     if (!gameRunning) return;
     
+    calculateFPS();
     updateCamera();
     
+    // Clear canvas
     ctx.fillStyle = '#2d5016';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     drawGrid();
     
+    // Update and draw resources
     resources.forEach(resource => {
         resource.update();
         resource.draw();
     });
     
+    // Draw obstacles
     ctx.fillStyle = '#5d4037';
     obstacles.forEach(obstacle => {
         const screenX = obstacle.x - camera.x;
@@ -1833,6 +1697,7 @@ function gameLoop(timestamp) {
         }
     });
     
+    // Update and draw players
     players.forEach(p => {
         if (p.isPlayer) {
             p.update();
@@ -1840,11 +1705,16 @@ function gameLoop(timestamp) {
         p.draw();
     });
     
-    bullets.forEach(bullet => {
-        bullet.update();
-        bullet.draw();
+    // Update and draw bullets (with cleanup)
+    bullets = bullets.filter(bullet => {
+        const shouldKeep = bullet.update();
+        if (shouldKeep) {
+            bullet.draw();
+        }
+        return shouldKeep;
     });
     
+    // Update and draw explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         const explosion = explosions[i];
         explosion.update();
@@ -1855,7 +1725,7 @@ function gameLoop(timestamp) {
         }
     }
     
-    // Check for resource collection every frame
+    // Check for resource collection
     checkResourceCollection();
     
     drawMiniMap();
@@ -1864,7 +1734,7 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// Start game
+// Enhanced game initialization
 startButton.addEventListener('click', () => {
     if (!selectedVehicle) {
         alert('Please select a vehicle!');
@@ -1877,7 +1747,6 @@ startButton.addEventListener('click', () => {
     requestAnimationFrame(gameLoop);
 });
 
-// Play again
 playAgainButton.addEventListener('click', () => {
     gameOverScreen.classList.add('hidden');
     startScreen.style.display = 'flex';
@@ -1889,7 +1758,7 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Auto-select first vehicle
+// Auto-select first vehicle and enable start button after timeout
 vehicleOptions[0].classList.add('selected');
 
 setTimeout(() => {
