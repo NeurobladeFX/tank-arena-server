@@ -425,8 +425,11 @@ document.addEventListener('keyup', (e) => {
 
 canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - rect.left) + camera.x;
-    mouse.y = (e.clientY - rect.top) + camera.y;
+    const scaleX = canvas.width / (window.devicePixelRatio || 1) / rect.width;
+    const scaleY = canvas.height / (window.devicePixelRatio || 1) / rect.height;
+    
+    mouse.x = (e.clientX - rect.left) * scaleX + camera.x;
+    mouse.y = (e.clientY - rect.top) * scaleY + camera.y;
 });
 
 // Mobile controls
@@ -619,6 +622,15 @@ class Vehicle {
                     const dx = mouse.x - this.x;
                     const dy = mouse.y - this.y;
                     this.turretAngle = Math.atan2(dy, dx);
+                }
+            } else {
+                // Mobile controls
+                if (touch.active) {
+                    this.angle += touch.moveX * this.rotationSpeed * 10;
+                    this.x += Math.cos(this.angle) * touch.moveY * this.speed * 10;
+                    this.y += Math.sin(this.angle) * touch.moveY * this.speed * 10;
+                    moved = true;
+                    this.turretAngle = this.angle;
                 }
             }
 
@@ -1096,6 +1108,175 @@ socket.on('player-left', (leftPlayerId) => {
     console.log(`👋 Player left: ${leftPlayerId}`);
 });
 
+socket.on('resource-collected', (data) => {
+    // Remove the collected resource locally
+    resources = resources.filter(r => 
+        !(Math.abs(r.x - data.resource.x) < 1 && 
+          Math.abs(r.y - data.resource.y) < 1 && 
+          r.type === data.resource.type)
+    );
+    
+    // Show collection effect
+    explosions.push(new Explosion(data.resource.x, data.resource.y, 15, '#4CAF50'));
+});
+
+// Upgrade Screen Handling
+socket.on('show-upgrade-screen', (data) => {
+    if (data.playerId === playerId) {
+        showUpgradeScreen(data.nextLevel);
+    }
+});
+
+function showUpgradeScreen(nextLevel) {
+    // Create upgrade screen if it doesn't exist
+    let upgradeScreen = document.getElementById('upgradeScreen');
+    if (!upgradeScreen) {
+        upgradeScreen = document.createElement('div');
+        upgradeScreen.id = 'upgradeScreen';
+        upgradeScreen.style.cssText = `
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        `;
+        upgradeScreen.innerHTML = `
+            <div id="upgradeContent" style="
+                background: rgba(0,0,0,0.95);
+                padding: 30px;
+                border-radius: 15px;
+                border: 3px solid #ffd700;
+                text-align: center;
+                color: white;
+                max-width: 90%;
+                max-height: 90%;
+                overflow-y: auto;
+            ">
+                <h2 style="color: #ffd700; margin-bottom: 20px;">🎉 LEVEL UP! 🎉</h2>
+                <p style="margin-bottom: 20px; font-size: 18px;">You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
+                <div class="upgrade-options" id="upgradeOptions" style="
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 15px;
+                    margin: 20px 0;
+                "></div>
+                <button id="confirmUpgrade" style="
+                    padding: 15px 30px;
+                    background: linear-gradient(45deg, #4CAF50, #45a049);
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    cursor: pointer;
+                    margin-top: 20px;
+                ">CONFIRM SELECTION</button>
+            </div>
+        `;
+        document.body.appendChild(upgradeScreen);
+    }
+    
+    // Populate upgrade options
+    const upgradeOptions = document.getElementById('upgradeOptions');
+    upgradeOptions.innerHTML = '';
+    
+    Object.keys(vehicleSystem).forEach(vehicleType => {
+        const vehicleData = vehicleSystem[vehicleType];
+        const stats = vehicleData.upgrades[nextLevel] || vehicleData.base;
+        
+        const option = document.createElement('div');
+        option.className = 'upgrade-option';
+        option.dataset.vehicle = vehicleType;
+        option.style.cssText = `
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        option.innerHTML = `
+            <div style="font-size: 40px; margin-bottom: 10px;">${getVehicleEmoji(vehicleType)}</div>
+            <div style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">${stats.name}</div>
+            <div style="color: #ccc; font-size: 0.9em;">
+                Health: ${stats.health} | Damage: ${stats.damage}<br>
+                Speed: ${stats.speed} | Fire Rate: ${stats.fireRate}
+            </div>
+        `;
+        
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.upgrade-option').forEach(opt => 
+                opt.style.borderColor = 'transparent');
+            option.style.borderColor = '#ffd700';
+            option.style.background = 'rgba(255,215,0,0.2)';
+        });
+        
+        upgradeOptions.appendChild(option);
+    });
+    
+    // Confirm button handler
+    const confirmBtn = document.getElementById('confirmUpgrade');
+    confirmBtn.onclick = () => {
+        const selected = document.querySelector('.upgrade-option[style*="border-color: rgb(255, 215, 0)"]');
+        if (selected) {
+            const newVehicleType = selected.dataset.vehicle;
+            socket.emit('select-vehicle-upgrade', {
+                playerId: playerId,
+                newLevel: nextLevel,
+                newVehicleType: newVehicleType
+            });
+            upgradeScreen.remove();
+            gameRunning = true;
+        } else {
+            alert('Please select a vehicle upgrade!');
+        }
+    };
+    
+    // Show the screen
+    upgradeScreen.style.display = 'flex';
+    gameRunning = false;
+}
+
+function getVehicleEmoji(type) {
+    const emojis = {
+        tank: '🚀',
+        jeep: '🚙', 
+        apc: '🚜',
+        artillery: '🚛',
+        helicopter: '🚁',
+        mech: '🤖'
+    };
+    return emojis[type] || '🚗';
+}
+
+// Add this function to check for resource collection
+function checkResourceCollection() {
+    if (!player) return;
+    
+    resources.forEach((resource, index) => {
+        const dx = resource.x - player.x;
+        const dy = resource.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < (player.width / 2 + resource.size)) {
+            socket.emit('collect-resource', {
+                playerId: player.id,
+                resource: {
+                    x: resource.x,
+                    y: resource.y,
+                    type: resource.type,
+                    value: resource.value
+                }
+            });
+            
+            // Remove from local array (server will respawn it)
+            resources.splice(index, 1);
+        }
+    });
+}
+
 // Game functions
 function initGame() {
     const nameInput = document.getElementById('playerNameInput');
@@ -1168,13 +1349,17 @@ function updateLeaderboard() {
 
 function updateCamera() {
     if (player) {
+        // Get the actual display size (CSS pixels)
+        const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+        const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+        
         // Immediate camera follow
-        camera.x = player.x - (canvas.width / (window.devicePixelRatio || 1)) / 2;
-        camera.y = player.y - (canvas.height / (window.devicePixelRatio || 1)) / 2;
+        camera.x = player.x - displayWidth / 2;
+        camera.y = player.y - displayHeight / 2;
 
         // Keep camera within map bounds
-        camera.x = Math.max(0, Math.min(mapSize - (canvas.width / (window.devicePixelRatio || 1)), camera.x));
-        camera.y = Math.max(0, Math.min(mapSize - (canvas.height / (window.devicePixelRatio || 1)), camera.y));
+        camera.x = Math.max(0, Math.min(mapSize - displayWidth, camera.x));
+        camera.y = Math.max(0, Math.min(mapSize - displayHeight, camera.y));
     }
 }
 
@@ -1336,6 +1521,9 @@ function gameLoop(timestamp) {
         if (explosion.isDone()) explosions.splice(i, 1);
     }
 
+    // Check for resource collection
+    checkResourceCollection();
+
     // Draw UI
     drawMiniMap();
     drawHUD();
@@ -1369,4 +1557,3 @@ playAgainButton.addEventListener('click', () => {
 vehicleOptions[0].classList.add('selected');
 
 console.log('=== GAME INITIALIZATION COMPLETE ===');
-
