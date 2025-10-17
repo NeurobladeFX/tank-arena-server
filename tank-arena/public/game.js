@@ -42,13 +42,20 @@ function setCanvasSizes() {
     canvas.width = Math.floor(window.innerWidth * dpr);
     canvas.height = Math.floor(window.innerHeight * dpr);
     
-    // Normalize coordinate system to use css pixels
+    // Reset transform and set new scale
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset first
     ctx.scale(dpr, dpr);
+    
+    // Now set the canvas drawing buffer size to match CSS size
+    ctx.canvas.width = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
     
     minimap.width = 150;
     minimap.height = 150;
     
-    console.log('Canvas sizes set:', canvas.width + ' (' + window.innerWidth + ' css) x ' + canvas.height + ' (' + window.innerHeight + ' css)');
+    console.log('🖼️ Canvas set - CSS:', window.innerWidth + 'x' + window.innerHeight, 
+                'Buffer:', canvas.width + 'x' + canvas.height,
+                'DPR:', dpr);
 }
 
 // Call immediately and on resize
@@ -682,14 +689,28 @@ class Vehicle {
     }
 
     draw() {
-        const screenX = this.x - camera.x;
-        const screenY = this.y - camera.y;
+    // FIXED: Use proper coordinate conversion
+    const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+    const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+    
+    const screenX = this.x - camera.x;
+    const screenY = this.y - camera.y;
 
-        // Skip drawing if off-screen (performance optimization)
-        if (screenX < -this.width || screenX > canvas.width + this.width ||
-            screenY < -this.height || screenY > canvas.height + this.height) {
-            return;
-        }
+    // Debug specific vehicle
+    if (this.isPlayer && Math.random() < 0.02) {
+        console.log('🚗 Player draw - World:', this.x, this.y, 
+                   'Camera:', camera.x, camera.y,
+                   'Screen:', screenX, screenY,
+                   'Canvas:', displayWidth, displayHeight);
+    }
+
+    // FIXED: Better bounds checking
+    const margin = 200; // Large margin to prevent culling issues
+    if (screenX < -this.width - margin || screenX > displayWidth + this.width + margin ||
+        screenY < -this.height - margin || screenY > displayHeight + this.height + margin) {
+        if (this.isPlayer) console.log('❌ Player culled!');
+        return;
+    }
 
         ctx.save();
         ctx.translate(screenX, screenY);
@@ -1349,28 +1370,27 @@ function updateLeaderboard() {
 
 function updateCamera() {
     if (player) {
-        // Get the actual display size (CSS pixels)
+        // Get the actual display size (CSS pixels) - FIXED CALCULATION
         const displayWidth = canvas.width / (window.devicePixelRatio || 1);
         const displayHeight = canvas.height / (window.devicePixelRatio || 1);
         
-        // Smooth camera follow with bounds checking
-        const targetX = player.x - displayWidth / 2;
-        const targetY = player.y - displayHeight / 2;
+        // Debug before calculation
+        console.log('🔍 Before camera - Player:', player.x, player.y, 'Screen:', displayWidth, displayHeight);
         
-        // Smooth camera movement (optional - remove for instant follow)
-        camera.x += (targetX - camera.x) * 0.1;
-        camera.y += (targetY - camera.y) * 0.1;
-
-        // Keep camera within map bounds
+        // Direct camera positioning - FIXED
+        camera.x = player.x - displayWidth / 2;
+        camera.y = player.y - displayHeight / 2;
+        
+        // Debug after calculation
+        console.log('📐 Calculated camera:', camera.x, camera.y);
+        
+        // Keep within bounds
         camera.x = Math.max(0, Math.min(mapSize - displayWidth, camera.x));
         camera.y = Math.max(0, Math.min(mapSize - displayHeight, camera.y));
         
-        // Debug camera position (remove in production)
-        if (Math.random() < 0.01) { // Log occasionally to avoid spam
-            console.log('🎥 Camera:', Math.round(camera.x), Math.round(camera.y), 
-                       'Player:', Math.round(player.x), Math.round(player.y),
-                       'Screen:', displayWidth, displayHeight);
-        }
+        // Final debug
+        console.log('🎯 Final camera:', Math.round(camera.x), Math.round(camera.y), 
+                   'Player screen pos:', Math.round(player.x - camera.x), Math.round(player.y - camera.y));
     }
 }
 
