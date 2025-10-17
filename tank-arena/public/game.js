@@ -410,12 +410,17 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 console.log('Mobile device detected:', isMobile);
 
 // Event listeners for desktop
+// FIXED: Keyboard event handlers
 document.addEventListener('keydown', (e) => {
-    keys[e.key.toLowerCase()] = true;
+    if (e.key) {
+        keys[e.key.toLowerCase()] = true;
+    }
 });
 
 document.addEventListener('keyup', (e) => {
-    keys[e.key.toLowerCase()] = false;
+    if (e.key) {
+        keys[e.key.toLowerCase()] = false;
+    }
 });
 
 canvas.addEventListener('mousemove', (e) => {
@@ -1364,3 +1369,4 @@ playAgainButton.addEventListener('click', () => {
 vehicleOptions[0].classList.add('selected');
 
 console.log('=== GAME INITIALIZATION COMPLETE ===');
+
