@@ -4,8 +4,6 @@ const minimap = document.getElementById('minimap');
 const minimapCtx = minimap.getContext('2d');
 
 console.log('=== GAME INITIALIZATION STARTED ===');
-console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-console.log('Canvas context:', ctx ? 'OK' : 'FAILED');
 
 // UI Elements
 const startScreen = document.getElementById('startScreen');
@@ -23,12 +21,6 @@ const finalKillsDisplay = document.getElementById('finalKills');
 const finalLevelDisplay = document.getElementById('finalLevel');
 const survivalTimeDisplay = document.getElementById('survivalTime');
 
-console.log('UI Elements loaded:', {
-    startScreen: !!startScreen,
-    startButton: !!startButton,
-    healthDisplay: !!healthDisplay
-});
-
 // Mobile controls
 const mobileControls = document.getElementById('mobileControls');
 const touchArea = document.getElementById('touchArea');
@@ -36,18 +28,30 @@ const fireButton = document.getElementById('fireButton');
 
 // Vehicle selection
 const vehicleOptions = document.querySelectorAll('.vehicle-option');
-console.log('Vehicle options found:', vehicleOptions.length);
 
-// Set canvas sizes
+// FIXED: Proper canvas sizing with device pixel ratio
 function setCanvasSizes() {
-    console.log('Setting canvas sizes, window size:', window.innerWidth, 'x', window.innerHeight);
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Set display size (css)
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    
+    // Set actual size in memory (scaled for retina displays)
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    
+    // Normalize coordinate system to use css pixels
+    ctx.scale(dpr, dpr);
+    
     minimap.width = 150;
     minimap.height = 150;
-    console.log('Canvas sizes set:', canvas.width, 'x', canvas.height);
+    
+    console.log('Canvas sizes set:', canvas.width + ' (' + window.innerWidth + ' css) x ' + canvas.height + ' (' + window.innerHeight + ' css)');
 }
 
+// Call immediately and on resize
 setCanvasSizes();
 window.addEventListener('resize', setCanvasSizes);
 
@@ -83,14 +87,6 @@ let mapSize = 4000;
 let startTime = Date.now();
 
 console.log('Game variables initialized');
-
-// Background image - Use fallback only
-let backgroundLoaded = false;
-console.log('⚠️ Using fallback background (gradient)');
-
-// Vehicle image cache
-const imageCache = new Map();
-console.log('Image cache created');
 
 // Enhanced Vehicle System
 const vehicleSystem = {
@@ -424,8 +420,8 @@ document.addEventListener('keyup', (e) => {
 
 canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left + camera.x;
-    mouse.y = e.clientY - rect.top + camera.y;
+    mouse.x = (e.clientX - rect.left) + camera.x;
+    mouse.y = (e.clientY - rect.top) + camera.y;
 });
 
 // Mobile controls
@@ -506,7 +502,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Vehicle class - SIMPLIFIED VERSION WITHOUT IMAGES
+// Vehicle class - SIMPLIFIED AND ROBUST
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         console.log(`🚗 Creating new Vehicle:`, { x, y, isPlayer, id, vehicleType, name });
@@ -528,15 +524,16 @@ class Vehicle {
         this.kills = 0;
         this.score = 0;
         this.experience = 0;
-        this.specialAbilityCooldown = 0;
-        this.specialAbilityActive = false;
-        this.specialAbilityDuration = 0;
 
         // Movement state
         this.movingForward = false;
         this.movingBackward = false;
         this.turningLeft = false;
         this.turningRight = false;
+        
+        // Debug info
+        this.debugId = Math.random().toString(36).substr(2, 5);
+        console.log(`✅ Vehicle ${this.debugId} created at ${x}, ${y}`);
     }
 
     getDefaultColor() {
@@ -581,30 +578,6 @@ class Vehicle {
         }
     }
 
-    levelUp() {
-        if (this.level < 5) {
-            this.level++;
-            const oldHealth = this.health;
-            const healthPercent = oldHealth / this.maxHealth;
-            this.updateStats();
-            this.health = this.maxHealth * healthPercent;
-
-            // Level up effect
-            if (this.isPlayer) {
-                for (let i = 0; i < 15; i++) {
-                    explosions.push(new Explosion(
-                        this.x + Math.random() * 80 - 40,
-                        this.y + Math.random() * 80 - 40,
-                        20,
-                        '#4CAF50'
-                    ));
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
     update() {
         if (this.isPlayer) {
             let moved = false;
@@ -642,25 +615,6 @@ class Vehicle {
                     const dy = mouse.y - this.y;
                     this.turretAngle = Math.atan2(dy, dx);
                 }
-            } else {
-                // Mobile controls
-                if (touch.active) {
-                    const dx = touch.moveX;
-                    const dy = touch.moveY;
-
-                    if (Math.abs(dx) > 0.05) {
-                        this.angle += dx * this.rotationSpeed * 8;
-                        moved = true;
-                    }
-
-                    if (Math.abs(dy) > 0.05) {
-                        this.x += Math.cos(this.angle) * dy * this.speed * 8;
-                        this.y += Math.sin(this.angle) * dy * this.speed * 8;
-                        moved = true;
-                    }
-
-                    this.turretAngle = this.angle;
-                }
             }
 
             // Send update to server
@@ -687,7 +641,6 @@ class Vehicle {
 
         // Cooldowns
         if (this.cooldown > 0) this.cooldown--;
-        if (this.specialAbilityCooldown > 0) this.specialAbilityCooldown--;
     }
 
     shoot() {
@@ -749,29 +702,28 @@ class Vehicle {
         
         switch(this.vehicleType) {
             case 'tank':
-                // Tank shape - rectangle with rounded front
+                // Tank shape
                 ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
                 ctx.fillStyle = '#2E7D32';
                 ctx.fillRect(-this.width / 4, -this.height / 4, this.width / 2, this.height / 2);
                 break;
                 
             case 'jeep':
-                // Jeep shape - smaller rectangle
+                // Jeep shape
                 ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
                 ctx.fillStyle = '#1565C0';
                 ctx.fillRect(-this.width / 3, -this.height / 3, this.width * 0.66, this.height * 0.66);
                 break;
                 
             case 'apc':
-                // APC shape - larger rectangle
+                // APC shape
                 ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
                 ctx.fillStyle = '#E65100';
-                // Add some details
                 ctx.fillRect(-this.width / 2.5, -this.height / 2.5, this.width / 1.25, this.height / 1.25);
                 break;
                 
             case 'artillery':
-                // Artillery shape - circle base with long barrel
+                // Artillery shape
                 ctx.beginPath();
                 ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
                 ctx.fill();
@@ -782,20 +734,18 @@ class Vehicle {
                 break;
                 
             case 'helicopter':
-                // Helicopter shape - oval with rotors
+                // Helicopter shape
                 ctx.beginPath();
                 ctx.ellipse(0, 0, this.width / 2, this.height / 3, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#006064';
-                // Rotor
                 ctx.fillRect(-this.width / 2, -this.height / 2 - 5, this.width, 3);
                 break;
                 
             case 'mech':
-                // Mech shape - humanoid outline
+                // Mech shape
                 ctx.fillRect(-this.width / 3, -this.height / 2, this.width * 0.66, this.height);
                 ctx.fillStyle = '#C62828';
-                // Legs
                 ctx.fillRect(-this.width / 4, this.height / 2, this.width / 6, this.height / 3);
                 ctx.fillRect(this.width / 8, this.height / 2, this.width / 6, this.height / 3);
                 break;
@@ -807,17 +757,13 @@ class Vehicle {
 
     drawTurret() {
         ctx.fillStyle = '#333';
-        
-        // Turret base
         ctx.beginPath();
         ctx.arc(0, 0, 8, 0, Math.PI * 2);
         ctx.fill();
         
-        // Turret barrel
         ctx.fillStyle = '#555';
         ctx.fillRect(0, -3, this.width / 2 + 10, 6);
         
-        // Barrel tip
         ctx.fillStyle = '#777';
         ctx.fillRect(this.width / 2 + 10, -2, 5, 4);
     }
@@ -829,12 +775,12 @@ class Vehicle {
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(this.name, 0, -this.height / 2 - 25);
+            ctx.fillText(this.name, screenX, screenY - this.height / 2 - 25);
 
             if (this.level > 1) {
                 ctx.fillStyle = '#ffd700';
                 ctx.font = 'bold 12px Arial';
-                ctx.fillText(`Lvl ${this.level}`, 0, -this.height / 2 - 10);
+                ctx.fillText(`Lvl ${this.level}`, screenX, screenY - this.height / 2 - 10);
             }
         }
 
@@ -844,15 +790,14 @@ class Vehicle {
         const healthPercent = Math.max(0, this.health / this.maxHealth);
 
         ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-        ctx.fillRect(-barWidth / 2, -this.height / 2 - 40, barWidth, barHeight);
+        ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 40, barWidth, barHeight);
         
         ctx.fillStyle = healthPercent > 0.6 ? '#4CAF50' : healthPercent > 0.3 ? '#FF9800' : '#F44336';
-        ctx.fillRect(-barWidth / 2, -this.height / 2 - 40, barWidth * healthPercent, barHeight);
+        ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 40, barWidth * healthPercent, barHeight);
         
-        // Health bar border
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
-        ctx.strokeRect(-barWidth / 2, -this.height / 2 - 40, barWidth, barHeight);
+        ctx.strokeRect(screenX - barWidth / 2, screenY - this.height / 2 - 40, barWidth, barHeight);
     }
 }
 
@@ -866,14 +811,9 @@ class Bullet {
         this.size = 6;
         this.ownerId = ownerId;
         this.damage = damage;
-        this.trail = [];
-        this.maxTrail = 5;
     }
 
     update() {
-        this.trail.push({ x: this.x, y: this.y });
-        if (this.trail.length > this.maxTrail) this.trail.shift();
-
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
     }
@@ -882,20 +822,6 @@ class Bullet {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
-        // Draw trail
-        for (let i = 0; i < this.trail.length; i++) {
-            const point = this.trail[i];
-            const trailX = point.x - camera.x;
-            const trailY = point.y - camera.y;
-            const alpha = i / this.trail.length * 0.3;
-
-            ctx.fillStyle = `rgba(255, 200, 50, ${alpha})`;
-            ctx.beginPath();
-            ctx.arc(trailX, trailY, this.size * (i / this.trail.length), 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Bullet
         ctx.fillStyle = 'rgba(255, 235, 59, 0.9)';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
@@ -936,7 +862,6 @@ class Resource {
             ctx.beginPath();
             ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
             ctx.fill();
-
             ctx.fillStyle = 'white';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
@@ -945,7 +870,6 @@ class Resource {
         } else if (this.type === 'ammo') {
             ctx.fillStyle = '#FF9800';
             ctx.fillRect(screenX - pulseSize / 2, screenY - pulseSize / 2, pulseSize, pulseSize);
-
             ctx.fillStyle = 'white';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
@@ -956,7 +880,6 @@ class Resource {
             ctx.beginPath();
             ctx.arc(screenX, screenY, pulseSize, 0, Math.PI * 2);
             ctx.fill();
-
             ctx.fillStyle = 'white';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
@@ -977,22 +900,7 @@ class Explosion {
         this.maxSize = size * 4;
         this.currentSize = size;
         this.growing = true;
-        this.particles = [];
         this.color = color;
-        this.createParticles();
-    }
-
-    createParticles() {
-        for (let i = 0; i < 20; i++) {
-            this.particles.push({
-                x: this.x,
-                y: this.y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 8 + 3,
-                size: Math.random() * 4 + 2,
-                life: 1
-            });
-        }
     }
 
     update() {
@@ -1001,17 +909,7 @@ class Explosion {
             if (this.currentSize >= this.maxSize) this.growing = false;
         } else {
             this.currentSize -= 2;
-            if (this.currentSize < 0) this.currentSize = 0;
         }
-
-        this.particles.forEach(particle => {
-            particle.x += Math.cos(particle.angle) * particle.speed;
-            particle.y += Math.sin(particle.angle) * particle.speed;
-            particle.life -= 0.03;
-            particle.size -= 0.15;
-        });
-
-        this.particles = this.particles.filter(p => p.life > 0 && p.size > 0);
     }
 
     draw() {
@@ -1032,23 +930,10 @@ class Explosion {
             ctx.arc(screenX, screenY, this.currentSize, 0, Math.PI * 2);
             ctx.fill();
         }
-
-        this.particles.forEach(particle => {
-            const particleX = particle.x - camera.x;
-            const particleY = particle.y - camera.y;
-
-            ctx.save();
-            ctx.globalAlpha = particle.life;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(particleX, particleY, particle.size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        });
     }
 
     isDone() {
-        return this.currentSize <= 0 && this.particles.length === 0;
+        return this.currentSize <= 0;
     }
 }
 
@@ -1077,7 +962,6 @@ socket.on('game-state', (gameState) => {
         // Handle local player (you)
         if (playerData.id === playerId) {
             if (player) {
-                // Update player stats from server but keep client position for smooth movement
                 player.health = playerData.health;
                 player.kills = playerData.kills;
                 player.score = playerData.score;
@@ -1108,14 +992,14 @@ socket.on('game-state', (gameState) => {
                     playerData.name
                 );
                 players.push(vehicle);
+                console.log(`➕ Added remote player: ${playerData.name}`);
             }
 
-            // Interpolate movement for remote players
-            vehicle.x += (playerData.x - vehicle.x) * 0.3;
-            vehicle.y += (playerData.y - vehicle.y) * 0.3;
+            // Update remote player position
+            vehicle.x = playerData.x;
+            vehicle.y = playerData.y;
             vehicle.angle = playerData.angle;
             vehicle.turretAngle = playerData.turretAngle;
-            
             vehicle.health = playerData.health;
             vehicle.kills = playerData.kills;
             vehicle.score = playerData.score;
@@ -1129,13 +1013,7 @@ socket.on('game-state', (gameState) => {
     });
 
     // Remove players that left the game
-    players = players.filter(p => {
-        if (p && receivedPlayers[p.id]) {
-            return true;
-        } else {
-            return false;
-        }
-    });
+    players = players.filter(p => p && receivedPlayers[p.id]);
 
     // Update bullets, obstacles, resources
     bullets = gameState.bullets.map(bulletData => {
@@ -1204,169 +1082,14 @@ socket.on('player-joined', (playerData) => {
         vehicle.level = playerData.level || 1;
         vehicle.updateStats();
         players.push(vehicle);
+        console.log(`👋 New player joined: ${playerData.name}`);
     }
 });
 
 socket.on('player-left', (leftPlayerId) => {
     players = players.filter(p => p && p.id !== leftPlayerId);
+    console.log(`👋 Player left: ${leftPlayerId}`);
 });
-
-socket.on('resource-collected', (data) => {
-    resources = resources.filter(r =>
-        !(Math.abs(r.x - data.resource.x) < 5 &&
-            Math.abs(r.y - data.resource.y) < 5 &&
-            r.type === data.resource.type)
-    );
-
-    if (data.playerId === playerId && player) {
-        if (data.resource.type === 'health') {
-            player.health = Math.min(player.maxHealth, player.health + data.resource.value);
-            healthDisplay.textContent = Math.ceil(player.health);
-        } else if (data.resource.type === 'experience') {
-            player.experience += data.resource.value;
-            player.score += 20;
-            scoreDisplay.textContent = player.score;
-        }
-
-        explosions.push(new Explosion(data.resource.x, data.resource.y, 15, '#4CAF50'));
-    }
-});
-
-socket.on('resource-spawned', (resourceData) => {
-    resources.push(new Resource(
-        resourceData.x,
-        resourceData.y,
-        resourceData.type,
-        resourceData.value
-    ));
-});
-
-socket.on('show-upgrade-screen', (data) => {
-    if (data.playerId === playerId) {
-        showUpgradeSelection(data.nextLevel);
-    }
-});
-
-socket.on('vehicle-upgraded', (data) => {
-    const upgradedPlayer = players.find(p => p && p.id === data.playerId);
-    if (upgradedPlayer) {
-        upgradedPlayer.vehicleType = data.newVehicleType;
-        upgradedPlayer.level = data.newLevel;
-        upgradedPlayer.updateStats();
-
-        if (upgradedPlayer.isPlayer) {
-            vehicleNameDisplay.textContent = upgradedPlayer.displayName;
-            levelDisplay.textContent = upgradedPlayer.level;
-
-            for (let i = 0; i < 20; i++) {
-                explosions.push(new Explosion(
-                    upgradedPlayer.x + Math.random() * 100 - 50,
-                    upgradedPlayer.y + Math.random() * 100 - 50,
-                    25,
-                    '#4CAF50'
-                ));
-            }
-        }
-    }
-});
-
-// Show upgrade selection screen
-function showUpgradeSelection(nextLevel) {
-    const existingScreen = document.getElementById('upgradeScreen');
-    if (existingScreen) return;
-
-    const upgradeScreen = document.createElement('div');
-    upgradeScreen.id = 'upgradeScreen';
-    
-    upgradeScreen.innerHTML = `
-        <div id="upgradeContent">
-            <h2>🚀 VEHICLE UPGRADE AVAILABLE!</h2>
-            <p>You've reached Level ${nextLevel}! Choose your upgraded vehicle:</p>
-            <div class="upgrade-options">
-                <div class="upgrade-option" data-vehicle="tank">
-                    <div class="vehicle-icon">🚀</div>
-                    <div class="vehicle-name">${vehicleSystem.tank.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.tank.upgrades[nextLevel]?.health || 'MAX'} | Damage: ${vehicleSystem.tank.upgrades[nextLevel]?.damage || 'MAX'}</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="jeep">
-                    <div class="vehicle-icon">🚙</div>
-                    <div class="vehicle-name">${vehicleSystem.jeep.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.jeep.upgrades[nextLevel]?.health || 'MAX'} | Speed: ${vehicleSystem.jeep.upgrades[nextLevel]?.speed || 'MAX'}</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="apc">
-                    <div class="vehicle-icon">🚜</div>
-                    <div class="vehicle-name">${vehicleSystem.apc.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.apc.upgrades[nextLevel]?.health || 'MAX'} | Armor: Heavy</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="artillery">
-                    <div class="vehicle-icon">🚛</div>
-                    <div class="vehicle-name">${vehicleSystem.artillery.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Damage: ${vehicleSystem.artillery.upgrades[nextLevel]?.damage || 'MAX'} | Range: Long</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="helicopter">
-                    <div class="vehicle-icon">🚁</div>
-                    <div class="vehicle-name">${vehicleSystem.helicopter.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Speed: ${vehicleSystem.helicopter.upgrades[nextLevel]?.speed || 'MAX'} | Mobility: High</div>
-                </div>
-                <div class="upgrade-option" data-vehicle="mech">
-                    <div class="vehicle-icon">🤖</div>
-                    <div class="vehicle-name">${vehicleSystem.mech.upgrades[nextLevel]?.name || 'MAX LEVEL'}</div>
-                    <div class="vehicle-stats">Health: ${vehicleSystem.mech.upgrades[nextLevel]?.health || 'MAX'} | Power: High</div>
-                </div>
-            </div>
-            <button id="confirmUpgrade">CONFIRM UPGRADE</button>
-        </div>
-    `;
-
-    document.body.appendChild(upgradeScreen);
-
-    let selectedUpgradeVehicle = player.vehicleType;
-
-    document.querySelectorAll('.upgrade-option').forEach(option => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.upgrade-option').forEach(opt => opt.classList.remove('selected'));
-            option.classList.add('selected');
-            selectedUpgradeVehicle = option.dataset.vehicle;
-        });
-    });
-
-    const currentOption = document.querySelector(`.upgrade-option[data-vehicle="${selectedUpgradeVehicle}"]`);
-    if (currentOption) currentOption.classList.add('selected');
-
-    document.getElementById('confirmUpgrade').addEventListener('click', () => {
-        socket.emit('select-vehicle-upgrade', {
-            playerId: playerId,
-            newVehicleType: selectedUpgradeVehicle,
-            newLevel: nextLevel
-        });
-        document.body.removeChild(upgradeScreen);
-    });
-}
-
-// Check for resource collection
-function checkResourceCollection() {
-    if (!player) return;
-
-    for (let i = resources.length - 1; i >= 0; i--) {
-        const resource = resources[i];
-        const dx = resource.x - player.x;
-        const dy = resource.y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < player.width / 2 + resource.size) {
-            socket.emit('collect-resource', {
-                playerId: player.id,
-                resource: {
-                    x: resource.x,
-                    y: resource.y,
-                    type: resource.type,
-                    value: resource.value
-                }
-            });
-            resources.splice(i, 1);
-        }
-    }
-}
 
 // Game functions
 function initGame() {
@@ -1407,12 +1130,14 @@ function initGame() {
     levelDisplay.textContent = player.level;
     vehicleNameDisplay.textContent = player.displayName;
 
-    // Set camera to player position immediately
-    camera.x = player.x - canvas.width / 2;
-    camera.y = player.y - canvas.height / 2;
+    // Set camera to player position
+    camera.x = player.x - (canvas.width / (window.devicePixelRatio || 1)) / 2;
+    camera.y = player.y - (canvas.height / (window.devicePixelRatio || 1)) / 2;
     
-    console.log('🎮 Game started! Player at:', player.x, player.y);
+    console.log('🎮 Game started!');
+    console.log('📍 Player at:', player.x, player.y);
     console.log('📷 Camera at:', camera.x, camera.y);
+    console.log('🖼️ Canvas size:', canvas.width + ' (' + (canvas.width / (window.devicePixelRatio || 1)) + ' css)');
 }
 
 function updateLeaderboard() {
@@ -1438,13 +1163,13 @@ function updateLeaderboard() {
 
 function updateCamera() {
     if (player) {
-        // Immediate camera follow (no smoothing for now)
-        camera.x = player.x - canvas.width / 2;
-        camera.y = player.y - canvas.height / 2;
+        // Immediate camera follow
+        camera.x = player.x - (canvas.width / (window.devicePixelRatio || 1)) / 2;
+        camera.y = player.y - (canvas.height / (window.devicePixelRatio || 1)) / 2;
 
         // Keep camera within map bounds
-        camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
-        camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
+        camera.x = Math.max(0, Math.min(mapSize - (canvas.width / (window.devicePixelRatio || 1)), camera.x));
+        camera.y = Math.max(0, Math.min(mapSize - (canvas.height / (window.devicePixelRatio || 1)), camera.y));
     }
 }
 
@@ -1456,7 +1181,7 @@ function drawBackground() {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid for better orientation
+    // Draw grid for orientation
     const gridSize = 100;
     const startX = Math.floor(camera.x / gridSize) * gridSize;
     const startY = Math.floor(camera.y / gridSize) * gridSize;
@@ -1487,31 +1212,6 @@ function drawMiniMap() {
 
     const scale = minimap.width / mapSize;
 
-    // Draw obstacles
-    minimapCtx.fillStyle = '#666';
-    obstacles.forEach(obstacle => {
-        minimapCtx.fillRect(
-            obstacle.x * scale - obstacle.width * scale / 2,
-            obstacle.y * scale - obstacle.height * scale / 2,
-            obstacle.width * scale,
-            obstacle.height * scale
-        );
-    });
-
-    // Draw resources
-    resources.forEach(resource => {
-        if (resource.type === 'health') {
-            minimapCtx.fillStyle = '#4CAF50';
-        } else if (resource.type === 'ammo') {
-            minimapCtx.fillStyle = '#FF9800';
-        } else {
-            minimapCtx.fillStyle = '#9C27B0';
-        }
-        minimapCtx.beginPath();
-        minimapCtx.arc(resource.x * scale, resource.y * scale, 2, 0, Math.PI * 2);
-        minimapCtx.fill();
-    });
-
     // Draw players
     players.forEach(p => {
         if (!p) return;
@@ -1519,17 +1219,6 @@ function drawMiniMap() {
         minimapCtx.beginPath();
         minimapCtx.arc(p.x * scale, p.y * scale, 3, 0, Math.PI * 2);
         minimapCtx.fill();
-
-        // Direction indicator
-        minimapCtx.strokeStyle = 'white';
-        minimapCtx.lineWidth = 1;
-        minimapCtx.beginPath();
-        minimapCtx.moveTo(p.x * scale, p.y * scale);
-        minimapCtx.lineTo(
-            p.x * scale + Math.cos(p.angle) * 8,
-            p.y * scale + Math.sin(p.angle) * 8
-        );
-        minimapCtx.stroke();
     });
 
     // Draw camera view
@@ -1538,8 +1227,8 @@ function drawMiniMap() {
     minimapCtx.strokeRect(
         camera.x * scale,
         camera.y * scale,
-        canvas.width * scale,
-        canvas.height * scale
+        (canvas.width / (window.devicePixelRatio || 1)) * scale,
+        (canvas.height / (window.devicePixelRatio || 1)) * scale
     );
 }
 
@@ -1557,43 +1246,6 @@ function drawHUD() {
         ctx.fillText('A/D: Rotate', 20, canvas.height - 60);
         ctx.fillText('Mouse: Aim Turret', 20, canvas.height - 40);
         ctx.fillText('Click: Shoot', 20, canvas.height - 20);
-    } else {
-        ctx.fillText('Touch & Drag: Move & Rotate', 20, canvas.height - 80);
-        ctx.fillText('Fire Button: Shoot', 20, canvas.height - 60);
-    }
-
-    // Experience bar
-    if (player) {
-        const xpNeeded = 300 + ((player.level - 1) * 150);
-        const currentXP = player.experience;
-        const expPercent = Math.min(1, currentXP / xpNeeded);
-        
-        const barWidth = 250;
-        const barHeight = 12;
-        const x = canvas.width / 2 - barWidth / 2;
-        const y = 15;
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x, y, barWidth, barHeight);
-
-        const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
-        gradient.addColorStop(0, '#9C27B0');
-        gradient.addColorStop(1, '#E1BEE7');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, y, barWidth * expPercent, barHeight);
-
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, barWidth, barHeight);
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(
-            `Level ${player.level} | ${currentXP}/${xpNeeded} XP`,
-            canvas.width / 2,
-            y + barHeight + 16
-        );
     }
 }
 
@@ -1679,9 +1331,6 @@ function gameLoop(timestamp) {
         if (explosion.isDone()) explosions.splice(i, 1);
     }
 
-    // Check for resource collection
-    checkResourceCollection();
-
     // Draw UI
     drawMiniMap();
     drawHUD();
@@ -1697,8 +1346,8 @@ startButton.addEventListener('click', () => {
     }
 
     startScreen.style.display = 'none';
-    initGame();
     gameRunning = true;
+    initGame();
     console.log('🚀 Starting game loop...');
     requestAnimationFrame(gameLoop);
 });
@@ -1709,12 +1358,6 @@ playAgainButton.addEventListener('click', () => {
     startScreen.style.display = 'flex';
     socket.disconnect();
     socket.connect();
-});
-
-window.addEventListener('beforeunload', () => {
-    if (gameRunning && playerId) {
-        socket.emit('leave-game', playerId);
-    }
 });
 
 // Auto-select first vehicle
