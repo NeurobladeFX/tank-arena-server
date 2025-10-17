@@ -1353,13 +1353,24 @@ function updateCamera() {
         const displayWidth = canvas.width / (window.devicePixelRatio || 1);
         const displayHeight = canvas.height / (window.devicePixelRatio || 1);
         
-        // Immediate camera follow
-        camera.x = player.x - displayWidth / 2;
-        camera.y = player.y - displayHeight / 2;
+        // Smooth camera follow with bounds checking
+        const targetX = player.x - displayWidth / 2;
+        const targetY = player.y - displayHeight / 2;
+        
+        // Smooth camera movement (optional - remove for instant follow)
+        camera.x += (targetX - camera.x) * 0.1;
+        camera.y += (targetY - camera.y) * 0.1;
 
         // Keep camera within map bounds
         camera.x = Math.max(0, Math.min(mapSize - displayWidth, camera.x));
         camera.y = Math.max(0, Math.min(mapSize - displayHeight, camera.y));
+        
+        // Debug camera position (remove in production)
+        if (Math.random() < 0.01) { // Log occasionally to avoid spam
+            console.log('🎥 Camera:', Math.round(camera.x), Math.round(camera.y), 
+                       'Player:', Math.round(player.x), Math.round(player.y),
+                       'Screen:', displayWidth, displayHeight);
+        }
     }
 }
 
