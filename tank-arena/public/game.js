@@ -84,17 +84,9 @@ let startTime = Date.now();
 
 console.log('Game variables initialized');
 
-// Background image
-const backgroundImage = new Image();
-backgroundImage.src = '/assets/land.jpg';
+// Background image - Use fallback only
 let backgroundLoaded = false;
-backgroundImage.onload = () => {
-    backgroundLoaded = true;
-    console.log('✅ Background image loaded successfully');
-};
-backgroundImage.onerror = () => {
-    console.log('⚠️ Using fallback background (gradient) - land.jpg not found');
-};
+console.log('⚠️ Using fallback background (gradient)');
 
 // Vehicle image cache
 const imageCache = new Map();
@@ -514,44 +506,7 @@ vehicleOptions.forEach(option => {
     });
 });
 
-// Helper function to create colored vehicle images
-function createVehicleImage(width, height, color) {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    
-    // Draw vehicle body
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, width, height);
-    
-    // Draw details
-    ctx.fillStyle = '#333';
-    ctx.fillRect(width * 0.2, height * 0.2, width * 0.6, height * 0.6);
-    
-    return canvas;
-}
-
-function createTurretImage(size, color) {
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    
-    // Draw turret base
-    ctx.fillStyle = '#333';
-    ctx.beginPath();
-    ctx.arc(size/2, size/2, size * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw turret barrel
-    ctx.fillStyle = '#555';
-    ctx.fillRect(size/2, size/2 - 3, size * 0.5, 6);
-    
-    return canvas;
-}
-
-// Vehicle class
+// Vehicle class - SIMPLIFIED VERSION WITHOUT IMAGES
 class Vehicle {
     constructor(x, y, isPlayer = false, id = null, vehicleType = 'tank', color = null, name = '') {
         console.log(`🚗 Creating new Vehicle:`, { x, y, isPlayer, id, vehicleType, name });
@@ -582,11 +537,6 @@ class Vehicle {
         this.movingBackward = false;
         this.turningLeft = false;
         this.turningRight = false;
-
-        // Image loading - use colored images as fallback
-        this.bodyImageLoaded = false;
-        this.turretImageLoaded = false;
-        this.loadVehicleImages();
     }
 
     getDefaultColor() {
@@ -599,120 +549,6 @@ class Vehicle {
             mech: '#F44336'
         };
         return colors[this.vehicleType] || '#4CAF50';
-    }
-
-    // In the Vehicle class, update the loadVehicleImages method:
-loadVehicleImages() {
-    const imagePath = this.getImagePath();
-    console.log(`🖼️ Loading vehicle images for: ${imagePath}`);
-
-    // Check cache first
-    if (imageCache.has(imagePath)) {
-        const cached = imageCache.get(imagePath);
-        this.bodyImage = cached.body;
-        this.turretImage = cached.turret;
-        this.bodyImageLoaded = cached.bodyLoaded;
-        this.turretImageLoaded = cached.turretLoaded;
-        return;
-    }
-
-    // Create new images
-    this.bodyImage = new Image();
-    this.turretImage = new Image();
-
-    this.bodyImage.onload = () => {
-        this.bodyImageLoaded = true;
-        console.log(`✅ Body image loaded: ${imagePath}_body.png`);
-    };
-
-    this.bodyImage.onerror = () => {
-        this.bodyImageLoaded = false;
-        console.log(`❌ Failed to load body image: ${imagePath}_body.png - Using colored fallback`);
-        // Create colored fallback
-        this.bodyImage = createVehicleImage(this.width, this.height, this.color);
-        this.bodyImageLoaded = true;
-    };
-
-    this.turretImage.onload = () => {
-        this.turretImageLoaded = true;
-        console.log(`✅ Turret image loaded: ${imagePath}_turret.png`);
-    };
-
-    this.turretImage.onerror = () => {
-        this.turretImageLoaded = false;
-        console.log(`❌ Failed to load turret image: ${imagePath}_turret.png - Using colored fallback`);
-        // Create colored fallback
-        this.turretImage = createTurretImage(this.width * 0.7, '#333');
-        this.turretImageLoaded = true;
-    };
-
-    // Cache and load
-    imageCache.set(imagePath, {
-        body: this.bodyImage,
-        turret: this.turretImage,
-        bodyLoaded: false,
-        turretLoaded: false
-    });
-
-    // Try multiple possible paths
-    const basePaths = [
-        `assets/${imagePath}_body.png`,
-        `/assets/${imagePath}_body.png`,
-        `./assets/${imagePath}_body.png`
-    ];
-    
-    // Load images with fallback paths
-    this.loadImageWithFallback(this.bodyImage, basePaths, 'body');
-    this.loadImageWithFallback(this.turretImage, basePaths.map(path => path.replace('_body', '_turret')), 'turret');
-}
-
-// Add this new method to the Vehicle class
-loadImageWithFallback(imageElement, paths, type) {
-    let currentIndex = 0;
-    
-    const tryNextPath = () => {
-        if (currentIndex >= paths.length) {
-            console.log(`❌ All paths failed for ${type}`);
-            imageElement.onerror();
-            return;
-        }
-        
-        const path = paths[currentIndex];
-        console.log(`Trying to load ${type} from: ${path}`);
-        
-        imageElement.onload = null;
-        imageElement.onerror = null;
-        
-        imageElement.onload = () => {
-            console.log(`✅ Successfully loaded ${type} from: ${path}`);
-            if (type === 'body') this.bodyImageLoaded = true;
-            else this.turretImageLoaded = true;
-        };
-        
-        imageElement.onerror = () => {
-            console.log(`❌ Failed to load ${type} from: ${path}`);
-            currentIndex++;
-            tryNextPath();
-        };
-        
-        imageElement.src = path;
-    };
-    
-    tryNextPath();
-}
-    getImagePath() {
-        const baseTypes = {
-            tank: ['tank_basic', 'tank_medium', 'tank_heavy', 'tank_battle', 'tank_elite'],
-            jeep: ['jeep_basic', 'jeep_combat', 'jeep_assault', 'jeep_raider', 'jeep_commando'],
-            apc: ['apc_basic', 'apc_heavy', 'apc_battle', 'apc_assault', 'apc_titan'],
-            artillery: ['artillery_basic', 'artillery_heavy', 'artillery_siege', 'artillery_mobile', 'artillery_super'],
-            helicopter: ['helicopter_basic', 'helicopter_attack', 'helicopter_gunship', 'helicopter_heavy', 'helicopter_elite'],
-            mech: ['mech_basic', 'mech_assault', 'mech_heavy', 'mech_battle', 'mech_titan']
-        };
-
-        const typeArray = baseTypes[this.vehicleType] || baseTypes.tank;
-        const levelIndex = Math.min(this.level - 1, typeArray.length - 1);
-        return typeArray[levelIndex];
     }
 
     updateStats() {
@@ -752,9 +588,6 @@ loadImageWithFallback(imageElement, paths, type) {
             const healthPercent = oldHealth / this.maxHealth;
             this.updateStats();
             this.health = this.maxHealth * healthPercent;
-
-            // Reload images for new level
-            this.loadVehicleImages();
 
             // Level up effect
             if (this.isPlayer) {
@@ -882,38 +715,27 @@ loadImageWithFallback(imageElement, paths, type) {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
 
+        // Skip drawing if off-screen (performance optimization)
+        if (screenX < -this.width || screenX > canvas.width + this.width ||
+            screenY < -this.height || screenY > canvas.height + this.height) {
+            return;
+        }
+
         ctx.save();
         ctx.translate(screenX, screenY);
 
-        // Draw vehicle body
+        // Draw vehicle body with unique shape for each type
         ctx.save();
         ctx.rotate(this.angle);
-        if (this.bodyImageLoaded) {
-            ctx.drawImage(this.bodyImage, -this.width / 2, -this.height / 2, this.width, this.height);
-        } else {
-            // Fallback colored rectangle
-            ctx.fillStyle = this.color;
-            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-            ctx.fillStyle = '#333';
-            ctx.fillRect(-this.width / 4, -this.height / 4, this.width / 2, this.height / 2);
-        }
+        
+        // Different shapes for different vehicle types
+        this.drawVehicleBody();
         ctx.restore();
 
         // Draw turret
         ctx.save();
         ctx.rotate(this.turretAngle);
-        if (this.turretImageLoaded) {
-            const turretSize = this.width * 0.7;
-            ctx.drawImage(this.turretImage, -turretSize / 2, -turretSize / 2, turretSize, turretSize);
-        } else {
-            // Fallback turret
-            ctx.fillStyle = '#333';
-            ctx.fillRect(0, -3, this.width / 2 + 10, 6);
-            ctx.fillStyle = '#555';
-            ctx.beginPath();
-            ctx.arc(0, 0, 8, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        this.drawTurret();
         ctx.restore();
 
         ctx.restore();
@@ -922,30 +744,115 @@ loadImageWithFallback(imageElement, paths, type) {
         this.drawUI(screenX, screenY);
     }
 
+    drawVehicleBody() {
+        ctx.fillStyle = this.color;
+        
+        switch(this.vehicleType) {
+            case 'tank':
+                // Tank shape - rectangle with rounded front
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.fillStyle = '#2E7D32';
+                ctx.fillRect(-this.width / 4, -this.height / 4, this.width / 2, this.height / 2);
+                break;
+                
+            case 'jeep':
+                // Jeep shape - smaller rectangle
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.fillStyle = '#1565C0';
+                ctx.fillRect(-this.width / 3, -this.height / 3, this.width * 0.66, this.height * 0.66);
+                break;
+                
+            case 'apc':
+                // APC shape - larger rectangle
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.fillStyle = '#E65100';
+                // Add some details
+                ctx.fillRect(-this.width / 2.5, -this.height / 2.5, this.width / 1.25, this.height / 1.25);
+                break;
+                
+            case 'artillery':
+                // Artillery shape - circle base with long barrel
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#6A1B9A';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 3, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+                
+            case 'helicopter':
+                // Helicopter shape - oval with rotors
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width / 2, this.height / 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#006064';
+                // Rotor
+                ctx.fillRect(-this.width / 2, -this.height / 2 - 5, this.width, 3);
+                break;
+                
+            case 'mech':
+                // Mech shape - humanoid outline
+                ctx.fillRect(-this.width / 3, -this.height / 2, this.width * 0.66, this.height);
+                ctx.fillStyle = '#C62828';
+                // Legs
+                ctx.fillRect(-this.width / 4, this.height / 2, this.width / 6, this.height / 3);
+                ctx.fillRect(this.width / 8, this.height / 2, this.width / 6, this.height / 3);
+                break;
+                
+            default:
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        }
+    }
+
+    drawTurret() {
+        ctx.fillStyle = '#333';
+        
+        // Turret base
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Turret barrel
+        ctx.fillStyle = '#555';
+        ctx.fillRect(0, -3, this.width / 2 + 10, 6);
+        
+        // Barrel tip
+        ctx.fillStyle = '#777';
+        ctx.fillRect(this.width / 2 + 10, -2, 5, 4);
+    }
+
     drawUI(screenX, screenY) {
         // Name and level
         if (this.name) {
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(this.name, screenX, screenY - this.height / 2 - 25);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.name, 0, -this.height / 2 - 25);
 
             if (this.level > 1) {
                 ctx.fillStyle = '#ffd700';
-                ctx.font = '10px Arial';
-                ctx.fillText(`Lvl ${this.level}`, screenX, screenY - this.height / 2 - 10);
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText(`Lvl ${this.level}`, 0, -this.height / 2 - 10);
             }
         }
 
         // Health bar
         const barWidth = 50;
-        const barHeight = 5;
+        const barHeight = 6;
         const healthPercent = Math.max(0, this.health / this.maxHealth);
 
-        ctx.fillStyle = 'red';
-        ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 35, barWidth, barHeight);
-        ctx.fillStyle = healthPercent > 0.3 ? 'green' : 'yellow';
-        ctx.fillRect(screenX - barWidth / 2, screenY - this.height / 2 - 35, barWidth * healthPercent, barHeight);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+        ctx.fillRect(-barWidth / 2, -this.height / 2 - 40, barWidth, barHeight);
+        
+        ctx.fillStyle = healthPercent > 0.6 ? '#4CAF50' : healthPercent > 0.3 ? '#FF9800' : '#F44336';
+        ctx.fillRect(-barWidth / 2, -this.height / 2 - 40, barWidth * healthPercent, barHeight);
+        
+        // Health bar border
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-barWidth / 2, -this.height / 2 - 40, barWidth, barHeight);
     }
 }
 
@@ -989,7 +896,7 @@ class Bullet {
         }
 
         // Bullet
-        ctx.fillStyle = 'rgba(255, 235, 59, 0.8)';
+        ctx.fillStyle = 'rgba(255, 235, 59, 0.9)';
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -1217,7 +1124,6 @@ socket.on('game-state', (gameState) => {
             if (vehicle.level !== playerData.level) {
                 vehicle.level = playerData.level;
                 vehicle.updateStats();
-                vehicle.loadVehicleImages();
             }
         }
     });
@@ -1347,7 +1253,6 @@ socket.on('vehicle-upgraded', (data) => {
         upgradedPlayer.vehicleType = data.newVehicleType;
         upgradedPlayer.level = data.newLevel;
         upgradedPlayer.updateStats();
-        upgradedPlayer.loadVehicleImages();
 
         if (upgradedPlayer.isPlayer) {
             vehicleNameDisplay.textContent = upgradedPlayer.displayName;
@@ -1502,9 +1407,12 @@ function initGame() {
     levelDisplay.textContent = player.level;
     vehicleNameDisplay.textContent = player.displayName;
 
-    // Set camera
+    // Set camera to player position immediately
     camera.x = player.x - canvas.width / 2;
     camera.y = player.y - canvas.height / 2;
+    
+    console.log('🎮 Game started! Player at:', player.x, player.y);
+    console.log('📷 Camera at:', camera.x, camera.y);
 }
 
 function updateLeaderboard() {
@@ -1530,57 +1438,46 @@ function updateLeaderboard() {
 
 function updateCamera() {
     if (player) {
-        camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
-        camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+        // Immediate camera follow (no smoothing for now)
+        camera.x = player.x - canvas.width / 2;
+        camera.y = player.y - canvas.height / 2;
 
+        // Keep camera within map bounds
         camera.x = Math.max(0, Math.min(mapSize - canvas.width, camera.x));
         camera.y = Math.max(0, Math.min(mapSize - canvas.height, camera.y));
     }
 }
 
 function drawBackground() {
-    if (backgroundLoaded) {
-        // Draw tiled background
-        const tileSize = 500;
-        const startX = Math.floor(camera.x / tileSize) * tileSize;
-        const startY = Math.floor(camera.y / tileSize) * tileSize;
-        const endX = Math.ceil((camera.x + canvas.width) / tileSize) * tileSize;
-        const endY = Math.ceil((camera.y + canvas.height) / tileSize) * tileSize;
+    // Simple gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#2d5016');
+    gradient.addColorStop(1, '#4a7c3a');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        for (let x = startX; x < endX; x += tileSize) {
-            for (let y = startY; y < endY; y += tileSize) {
-                ctx.drawImage(backgroundImage, x - camera.x, y - camera.y, tileSize, tileSize);
-            }
-        }
-    } else {
-        // Fallback gradient background
-        ctx.fillStyle = '#2d5016';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw grid for better orientation
+    const gridSize = 100;
+    const startX = Math.floor(camera.x / gridSize) * gridSize;
+    const startY = Math.floor(camera.y / gridSize) * gridSize;
 
-        // Draw grid
-        const gridSize = 100;
-        const startX = Math.floor(camera.x / gridSize) * gridSize;
-        const startY = Math.floor(camera.y / gridSize) * gridSize;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
 
-        for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
-            for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
-                const screenX = x - camera.x;
-                const screenY = y - camera.y;
+    for (let x = startX; x < camera.x + canvas.width + gridSize; x += gridSize) {
+        const screenX = x - camera.x;
+        ctx.beginPath();
+        ctx.moveTo(screenX, 0);
+        ctx.lineTo(screenX, canvas.height);
+        ctx.stroke();
+    }
 
-                const pattern = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 4;
-                switch (pattern) {
-                    case 0: ctx.fillStyle = 'rgba(45, 80, 22, 0.8)'; break;
-                    case 1: ctx.fillStyle = 'rgba(60, 100, 30, 0.8)'; break;
-                    case 2: ctx.fillStyle = 'rgba(74, 124, 58, 0.8)'; break;
-                    case 3: ctx.fillStyle = 'rgba(85, 140, 65, 0.8)'; break;
-                }
-
-                ctx.fillRect(screenX, screenY, gridSize, gridSize);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(screenX, screenY, gridSize, gridSize);
-            }
-        }
+    for (let y = startY; y < camera.y + canvas.height + gridSize; y += gridSize) {
+        const screenY = y - camera.y;
+        ctx.beginPath();
+        ctx.moveTo(0, screenY);
+        ctx.lineTo(canvas.width, screenY);
+        ctx.stroke();
     }
 }
 
@@ -1623,6 +1520,7 @@ function drawMiniMap() {
         minimapCtx.arc(p.x * scale, p.y * scale, 3, 0, Math.PI * 2);
         minimapCtx.fill();
 
+        // Direction indicator
         minimapCtx.strokeStyle = 'white';
         minimapCtx.lineWidth = 1;
         minimapCtx.beginPath();
@@ -1689,7 +1587,7 @@ function drawHUD() {
         ctx.strokeRect(x, y, barWidth, barHeight);
 
         ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
+        ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(
             `Level ${player.level} | ${currentXP}/${xpNeeded} XP`,
@@ -1757,8 +1655,7 @@ function gameLoop(timestamp) {
     });
     
     // Update and draw players
-    const sortedPlayers = [...players].sort((a, b) => (a.isPlayer ? 1 : -1));
-    sortedPlayers.forEach((p) => {
+    players.forEach((p) => {
         if (p) {
             if (p.isPlayer) {
                 p.update();
@@ -1802,6 +1699,7 @@ startButton.addEventListener('click', () => {
     startScreen.style.display = 'none';
     initGame();
     gameRunning = true;
+    console.log('🚀 Starting game loop...');
     requestAnimationFrame(gameLoop);
 });
 
