@@ -654,9 +654,51 @@ loadVehicleImages() {
         turretLoaded: false
     });
 
-    // Load images - use relative paths from public folder
-    this.bodyImage.src = `assets/${imagePath}_body.png`;
-    this.turretImage.src = `assets/${imagePath}_turret.png`;
+    // Try multiple possible paths
+    const basePaths = [
+        `assets/${imagePath}_body.png`,
+        `/assets/${imagePath}_body.png`,
+        `./assets/${imagePath}_body.png`
+    ];
+    
+    // Load images with fallback paths
+    this.loadImageWithFallback(this.bodyImage, basePaths, 'body');
+    this.loadImageWithFallback(this.turretImage, basePaths.map(path => path.replace('_body', '_turret')), 'turret');
+}
+
+// Add this new method to the Vehicle class
+loadImageWithFallback(imageElement, paths, type) {
+    let currentIndex = 0;
+    
+    const tryNextPath = () => {
+        if (currentIndex >= paths.length) {
+            console.log(`❌ All paths failed for ${type}`);
+            imageElement.onerror();
+            return;
+        }
+        
+        const path = paths[currentIndex];
+        console.log(`Trying to load ${type} from: ${path}`);
+        
+        imageElement.onload = null;
+        imageElement.onerror = null;
+        
+        imageElement.onload = () => {
+            console.log(`✅ Successfully loaded ${type} from: ${path}`);
+            if (type === 'body') this.bodyImageLoaded = true;
+            else this.turretImageLoaded = true;
+        };
+        
+        imageElement.onerror = () => {
+            console.log(`❌ Failed to load ${type} from: ${path}`);
+            currentIndex++;
+            tryNextPath();
+        };
+        
+        imageElement.src = path;
+    };
+    
+    tryNextPath();
 }
     getImagePath() {
         const baseTypes = {
