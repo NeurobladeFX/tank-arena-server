@@ -1,0 +1,16 @@
+{
+  "name": "military-vehicles-io",
+  "version": "1.0.0",
+  "description": "Realistic Military Vehicles Battle Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
